@@ -1,34 +1,11 @@
 using LogiMarket.Domain.Catalog.Composite;
-using LogiMarket.Domain.Entities;
 using LogiMarket.Domain.Exceptions;
-using LogiMarket.Domain.ValueObjects;
+using static LogiMarket.Tests.Fakes.CatalogoDePrueba;
 
 namespace LogiMarket.Tests.Patterns.Structural;
 
 public class CompositeTests
 {
-    // Productos oficiales de la guía.
-    private static ProductoSimple P01() => new(new Producto("P01", "Mouse USB", new Dinero(20m), 0.20m, 8));
-    private static ProductoSimple P02() => new(new Producto("P02", "Teclado", new Dinero(30m), 0.70m, 5));
-    private static ProductoSimple P03() => new(new Producto("P03", "Memoria USB", new Dinero(10m), 0.10m, 20));
-
-    // KIT_OFICINA = P01 + P02
-    private static KitCompuesto CrearKitOficina()
-    {
-        var kit = new KitCompuesto("KIT_OFICINA", "Kit Oficina");
-        kit.Agregar(P01());
-        kit.Agregar(P02());
-        return kit;
-    }
-
-    // KIT_TELETRABAJO = KIT_OFICINA + P03 (un kit dentro de otro kit)
-    private static KitCompuesto CrearKitTeletrabajo()
-    {
-        var kit = new KitCompuesto("KIT_TELETRABAJO", "Kit Teletrabajo");
-        kit.Agregar(CrearKitOficina());
-        kit.Agregar(P03());
-        return kit;
-    }
 
     [Fact]
     public void ObtenerPrecio_KitOficina_Es50()
