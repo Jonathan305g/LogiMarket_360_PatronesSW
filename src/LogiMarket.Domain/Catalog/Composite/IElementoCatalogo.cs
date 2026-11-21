@@ -1,3 +1,4 @@
+using LogiMarket.Domain.Catalog.Visitor;
 using LogiMarket.Domain.ValueObjects;
 
 namespace LogiMarket.Domain.Catalog.Composite;
@@ -15,4 +16,7 @@ public interface IElementoCatalogo
     // Lista de productos físicos finales con su cantidad.
     IEnumerable<ComponenteFisico> ExpandirComponentes();
     bool ContieneSku(string sku);
+
+    // Punto de entrada del Visitor.
+    void Aceptar(IVisitorCatalogo visitor, int cantidad);
 }
