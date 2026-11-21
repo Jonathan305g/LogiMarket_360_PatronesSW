@@ -8,8 +8,7 @@ public class KitCompuesto : IElementoCatalogo
 {
     // Un componente del kit con su cantidad (ej.: 2 mouse dentro del kit).
     private record ItemKit(IElementoCatalogo Elemento, int Cantidad);
-
-    // La lista es privada: nadie puede agregar a escondidas saltándose la validación de ciclos.
+    
     private readonly List<ItemKit> _items = new();
 
     public string Sku { get; }
