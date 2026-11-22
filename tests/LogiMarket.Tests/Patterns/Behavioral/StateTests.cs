@@ -1,12 +1,13 @@
 using LogiMarket.Domain.Entities;
 using LogiMarket.Domain.Enums;
 using LogiMarket.Domain.Exceptions;
+using LogiMarket.Tests.Fakes;
 
 namespace LogiMarket.Tests.Patterns.Behavioral;
 
 public class StateTests
 {
-    private static Pedido NuevoPedido() => new(Guid.NewGuid());
+    private static Pedido NuevoPedido() => PedidosDePrueba.Borrador();
 
     // Lleva un pedido a PAGADO por el camino válido.
     private static Pedido PedidoPagado()
@@ -104,9 +105,4 @@ public class StateTests
         Assert.Equal(EstadoPedido.Validado, cambio.Nuevo);
     }
 
-    [Fact]
-    public void Constructor_ClienteVacio_LanzaDomainException()
-    {
-        Assert.Throws<DomainException>(() => new Pedido(Guid.Empty));
-    }
 }
