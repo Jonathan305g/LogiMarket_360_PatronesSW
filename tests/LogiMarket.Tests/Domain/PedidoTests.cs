@@ -1,4 +1,5 @@
 using LogiMarket.Domain.Exceptions;
+using LogiMarket.Domain.ValueObjects;
 using LogiMarket.Tests.Fakes;
 using static LogiMarket.Tests.Fakes.CatalogoDePrueba;
 
@@ -43,5 +44,34 @@ public class PedidoTests
         var pedido = PedidosDePrueba.Borrador();
 
         Assert.Throws<DomainException>(() => pedido.CambiarCantidad("NO_EXISTE", 2));
+    }
+
+    [Fact]
+    public void Valorar_PedidoValidado_CalculaElTotalDeAna()
+    {
+        var pedido = PedidosDePrueba.Borrador();
+        pedido.Validar();
+
+        pedido.Valorar(new Dinero(6m), new Dinero(5m));
+
+        Assert.Equal(54m, pedido.SubtotalConDescuento.Valor);
+        Assert.Equal(59m, pedido.Total.Valor); // 60 - 6 + 5
+    }
+
+    [Fact]
+    public void Valorar_PedidoEnBorrador_LanzaDomainException()
+    {
+        var pedido = PedidosDePrueba.Borrador();
+
+        Assert.Throws<DomainException>(() => pedido.Valorar(new Dinero(6m), new Dinero(5m)));
+    }
+
+    [Fact]
+    public void Valorar_DescuentoMayorAlSubtotal_LanzaDomainException()
+    {
+        var pedido = PedidosDePrueba.Borrador();
+        pedido.Validar();
+
+        Assert.Throws<DomainException>(() => pedido.Valorar(new Dinero(61m), new Dinero(5m)));
     }
 }

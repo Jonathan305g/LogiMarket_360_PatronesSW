@@ -101,6 +101,24 @@ public class Pedido : IPrototipo<Pedido>
         AsegurarBorrador();
         Entrega = entrega;
     }
+    // ---------- Valoración ----------
+
+    // Fija el descuento y la tarifa calculados por las políticas. Solo en VALIDADO,
+    // es decir, después de poder editar y antes de cobrar.
+    public void Valorar(Dinero descuento, Dinero tarifa)
+    {
+        if (Estado != EstadoPedido.Validado)
+            throw new DomainException($"Solo se puede valorar un pedido VALIDADO (estado actual: {Estado}).");
+
+        if (descuento.Valor < 0 || descuento.Valor > Subtotal.Valor)
+            throw new DomainException("El descuento debe estar entre 0 y el subtotal.");
+
+        if (tarifa.Valor < 0)
+            throw new DomainException("La tarifa no puede ser negativa.");
+
+        Descuento = descuento;
+        Tarifa = tarifa;
+    }
 
     // ---------- Componentes físicos ----------
 
