@@ -17,6 +17,10 @@ public class Pedido : IPrototipo<Pedido>
     public Guid Id { get; private set; }
     public Guid ClienteId { get; private set; }
     public TipoEntrega Entrega { get; private set; }
+    public Dinero Descuento { get; private set; } = Dinero.Cero;
+    public Dinero Tarifa { get; private set; } = Dinero.Cero;
+    public DateTime? FechaEntregaUtc { get; private set; }
+    public bool Devuelto { get; private set; }
 
     public EstadoPedido Estado => _estado.Estado;
     public IReadOnlyList<CambioEstado> Historial => _historial;
@@ -32,6 +36,12 @@ public class Pedido : IPrototipo<Pedido>
             return total;
         }
     }
+
+    // productos con descuento (base del reembolso, sin tarifa).
+    public Dinero SubtotalConDescuento => Subtotal - Descuento;
+
+    // total = subtotal - descuento + tarifa.
+    public Dinero Total => SubtotalConDescuento + Tarifa;
 
     // Unidades físicas finales (un kit cuenta por sus SKU): lo usará la política MAYORISTA.
     public int UnidadesFisicas =>
@@ -92,6 +102,17 @@ public class Pedido : IPrototipo<Pedido>
         Entrega = entrega;
     }
 
+    // ---------- Componentes físicos ----------
+
+    // SKU finales de TODO el pedido, con cantidades ya multiplicadas y consolidadas.
+    // Sirve para descontar el stock al cobrar y para reintegrarlo al devolver.
+    public IReadOnlyList<ComponenteFisico> ComponentesFisicosTotales() =>
+        _detalles
+            .SelectMany(d => d.Componentes.Select(c => new ComponenteFisico(c.Sku, c.Cantidad * d.Cantidad)))
+            .GroupBy(c => c.Sku)
+            .Select(g => new ComponenteFisico(g.Key, g.Sum(c => c.Cantidad)))
+            .ToList();
+
     // ---------- Prototype ----------
 
     // Copia de plantilla: solo desde BORRADOR. Nace con Id nuevo, estado BORRADOR,
@@ -130,7 +151,12 @@ public class Pedido : IPrototipo<Pedido>
     public void Validar() => Transicionar(_estado.Validar());
     public void Pagar() => Transicionar(_estado.Pagar());
     public void Despachar() => Transicionar(_estado.Despachar());
-    public void Entregar() => Transicionar(_estado.Entregar());
+    public void Entregar()
+    {
+        Transicionar(_estado.Entregar());
+        FechaEntregaUtc = DateTime.UtcNow;
+    }
+
     public void Cancelar() => Transicionar(_estado.Cancelar());
 
     private void Transicionar(IEstadoPedido nuevo)
@@ -138,6 +164,20 @@ public class Pedido : IPrototipo<Pedido>
         var anterior = _estado.Estado;
         _estado = nuevo;
         _historial.Add(new CambioEstado(anterior, nuevo.Estado, DateTime.UtcNow));
+    }
+
+    // ---------- Devolución ----------
+
+    // "internal": solo el proceso de devolución puede marcar un pedido como devuelto.
+    internal void MarcarDevuelto()
+    {
+        if (Estado != EstadoPedido.Entregado)
+            throw new DomainException("Solo se puede devolver un pedido ENTREGADO.");
+
+        if (Devuelto)
+            throw new DomainException("El pedido ya fue devuelto.");
+
+        Devuelto = true;
     }
 
     // ---------- Auxiliares ----------
