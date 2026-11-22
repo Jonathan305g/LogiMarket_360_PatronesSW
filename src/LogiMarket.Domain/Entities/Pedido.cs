@@ -4,6 +4,7 @@ using LogiMarket.Domain.Exceptions;
 using LogiMarket.Domain.Orders.Prototype;
 using LogiMarket.Domain.Orders.State;
 using LogiMarket.Domain.ValueObjects;
+using LogiMarket.Domain.Orders.Memento;
 
 namespace LogiMarket.Domain.Entities;
 
@@ -85,6 +86,12 @@ public class Pedido : IPrototipo<Pedido>
         linea.CambiarCantidad(cantidad);
     }
 
+    public void CambiarEntrega(TipoEntrega entrega)
+    {
+        AsegurarBorrador();
+        Entrega = entrega;
+    }
+
     // ---------- Prototype ----------
 
     // Copia de plantilla: solo desde BORRADOR. Nace con Id nuevo, estado BORRADOR,
@@ -97,6 +104,25 @@ public class Pedido : IPrototipo<Pedido>
         foreach (var detalle in _detalles)
             copia._detalles.Add(detalle.Clonar());
         return copia;
+    }
+
+    // ---------- Memento ----------
+
+    // "internal": solo HistorialEdiciones (dentro de Domain) puede sacar y devolver fotografías.
+    internal PedidoMemento CrearMemento()
+    {
+        AsegurarBorrador();
+        return new PedidoMemento(Entrega, _detalles);
+    }
+
+    internal void Restaurar(PedidoMemento memento)
+    {
+        AsegurarBorrador();
+
+        Entrega = memento.Entrega;
+        _detalles.Clear();
+        foreach (var detalle in memento.Detalles)
+            _detalles.Add(detalle.Clonar()); // se vuelve a clonar para no compartir objetos con el memento
     }
 
     // ---------- State ----------
