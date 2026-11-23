@@ -4,16 +4,26 @@ using LogiMarket.Domain.Enums;
 
 namespace LogiMarket.Tests.Fakes;
 
-// Pasarela de prueba que ANOTA cada llamada que recibe.
+// Pasarela de prueba que ANOTA cada llamada y se puede programar.
 public sealed class PasarelaEspia : IPasarelaPago
 {
     public List<(decimal Monto, string Clave)> Llamadas { get; } = new();
     public int Invocaciones => Llamadas.Count;
 
+    // Lo que responderá (por defecto, aprueba).
+    public ResultadoCobro Respuesta { get; set; } = ResultadoCobro.Exito("REF-ESPIA");
+
+    // Si se asigna, la pasarela "se cae" lanzando esta excepción.
+    public Exception? FalloTecnico { get; set; }
+
     public Task<ResultadoCobro> CobrarAsync(decimal monto, string claveIdempotencia, CancellationToken ct = default)
     {
         Llamadas.Add((monto, claveIdempotencia));
-        return Task.FromResult(ResultadoCobro.Exito("REF-ESPIA"));
+
+        if (FalloTecnico is not null)
+            throw FalloTecnico;
+
+        return Task.FromResult(Respuesta);
     }
 }
 
