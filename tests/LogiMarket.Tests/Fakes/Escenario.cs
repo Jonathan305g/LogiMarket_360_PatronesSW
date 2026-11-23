@@ -20,6 +20,8 @@ public sealed class Escenario
     public ConfirmacionPedidoFacade Facade { get; }
     public CancelarPedidoCasoUso Cancelacion { get; }
     public InvocadorComandos Invocador { get; }
+    public PlanificadorEntrega Planificador { get; } =   // NUEVO
+    new(new IFabricaEntrega[] { new FabricaEntregaEstandar(), new FabricaEntregaExpres() });
 
     public Escenario(RolUsuario rol = RolUsuario.Ventas)
     {
@@ -34,14 +36,16 @@ public sealed class Escenario
             Almacen,   // IMovimientoInventarioRepository
             Almacen,   // IOutbox
             Almacen,   // IUnitOfWork
+
             new CalculadoraDescuento(new IPoliticaDescuento[] { new SinDescuento(), new Vip10(), new Mayorista15() }),
-            new PlanificadorEntrega(new IFabricaEntrega[] { new FabricaEntregaEstandar(), new FabricaEntregaExpres() }),
+            Planificador,
             Pasarela,
             Usuario);
 
         Cancelacion = new CancelarPedidoCasoUso(Almacen, Almacen, Usuario);
         Invocador = new InvocadorComandos(Usuario);
     }
+
 
     public Task<ResultadoConfirmacion> Confirmar(Pedido pedido, string clave) =>
         Facade.ConfirmarAsync(new ConfirmarPedidoSolicitud(pedido.Id, clave));
@@ -55,4 +59,5 @@ public sealed class Escenario
             builder.AgregarLinea(item, cantidad);
         return builder.Construir();
     }
+
 }

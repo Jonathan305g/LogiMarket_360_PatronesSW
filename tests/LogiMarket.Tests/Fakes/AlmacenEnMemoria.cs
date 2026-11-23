@@ -6,7 +6,8 @@ using LogiMarket.Domain.ValueObjects;
 namespace LogiMarket.Tests.Fakes;
 
 public sealed class AlmacenEnMemoria : IClienteRepository, IPedidoRepository, IProductoRepository,
-    IPagoRepository, IMovimientoInventarioRepository, IOutbox, IUnitOfWork
+    IPagoRepository, IMovimientoInventarioRepository, IOutbox, IUnitOfWork,
+    IDespachoRepository, IDevolucionRepository   // NUEVO
 {
     private readonly Dictionary<Guid, Cliente> _clientes = new();
     private readonly Dictionary<Guid, Pedido> _pedidos = new();
@@ -16,14 +17,17 @@ public sealed class AlmacenEnMemoria : IClienteRepository, IPedidoRepository, IP
     private readonly List<Pago> _pagosPendientes = new();
     private readonly List<MovimientoInventario> _movimientosPendientes = new();
     private readonly List<IEventoDominio> _eventosPendientes = new();
+    private readonly List<Despacho> _despachosPendientes = new();       
+    private readonly List<Devolucion> _devolucionesPendientes = new();  
 
     // Lo que "quedó guardado en la base" tras un commit.
     public List<Pago> Pagos { get; } = new();
     public List<MovimientoInventario> Movimientos { get; } = new();
     public List<IEventoDominio> EventosOutbox { get; } = new();
+    public List<Despacho> Despachos { get; } = new();        
+    public List<Devolucion> Devoluciones { get; } = new();   
     public int Commits { get; private set; }
 
-    // Si se asigna, el siguiente commit falla con esta excepción y NO guarda nada.
     public Exception? FalloEnCommit { get; set; }
 
     // ----- Preparación de datos de prueba -----
@@ -32,7 +36,6 @@ public sealed class AlmacenEnMemoria : IClienteRepository, IPedidoRepository, IP
     public Producto Sembrar(Producto producto) { _productos[producto.Sku] = producto; return producto; }
     public Producto ProductoPorSku(string sku) => _productos[sku];
 
-    // Los 5 productos oficiales con su stock inicial.
     public static AlmacenEnMemoria ConCatalogoOficial()
     {
         var almacen = new AlmacenEnMemoria();
@@ -44,7 +47,7 @@ public sealed class AlmacenEnMemoria : IClienteRepository, IPedidoRepository, IP
         return almacen;
     }
 
-    // ----- Lecturas (explícitas porque comparten nombre) -----
+    // ----- Lecturas -----
     Task<Cliente?> IClienteRepository.ObtenerPorIdAsync(Guid id) =>
         Task.FromResult(_clientes.GetValueOrDefault(id));
 
@@ -66,6 +69,8 @@ public sealed class AlmacenEnMemoria : IClienteRepository, IPedidoRepository, IP
     // ----- Escrituras: solo dejan pendiente -----
     public void Agregar(Pago pago) => _pagosPendientes.Add(pago);
     public void Agregar(MovimientoInventario movimiento) => _movimientosPendientes.Add(movimiento);
+    public void Agregar(Despacho despacho) => _despachosPendientes.Add(despacho);       
+    public void Agregar(Devolucion devolucion) => _devolucionesPendientes.Add(devolucion); 
     public void Registrar(IEventoDominio evento) => _eventosPendientes.Add(evento);
 
     // ----- Unidad de trabajo: todo o nada -----
@@ -73,19 +78,25 @@ public sealed class AlmacenEnMemoria : IClienteRepository, IPedidoRepository, IP
     {
         if (FalloEnCommit is not null)
         {
-            // Una transacción fallida descarta TODO lo pendiente.
             _pagosPendientes.Clear();
             _movimientosPendientes.Clear();
             _eventosPendientes.Clear();
+            _despachosPendientes.Clear();
+            _devolucionesPendientes.Clear();
             throw FalloEnCommit;
         }
 
         Pagos.AddRange(_pagosPendientes);
         Movimientos.AddRange(_movimientosPendientes);
         EventosOutbox.AddRange(_eventosPendientes);
+        Despachos.AddRange(_despachosPendientes);
+        Devoluciones.AddRange(_devolucionesPendientes);
+
         _pagosPendientes.Clear();
         _movimientosPendientes.Clear();
         _eventosPendientes.Clear();
+        _despachosPendientes.Clear();
+        _devolucionesPendientes.Clear();
         Commits++;
 
         return Task.CompletedTask;

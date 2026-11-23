@@ -1,6 +1,8 @@
 using LogiMarket.Application.Abstractions.Gateways;
 using LogiMarket.Application.Commands.Command;
 using LogiMarket.Application.UseCases.ConfirmarPedido.Facade;
+using LogiMarket.Application.UseCases.Despacho;
+using LogiMarket.Application.UseCases.Devoluciones;
 using LogiMarket.Application.Validation;
 using LogiMarket.Domain.Entities;
 using LogiMarket.Domain.Enums;
@@ -173,5 +175,42 @@ public class CommandTests
         Assert.Same(solicitud, espia.Recibida);                       // el receptor recibió la solicitud intacta
         Assert.Equal("FALSO", resultado.Error!.Codigo);               // y su respuesta pasó sin cambios
         Assert.Equal("FALSO: respuesta de prueba", Assert.Single(invocador.Registro).Resultado);
+    }
+    [Fact]
+    public async Task DespacharPedidoCommand_SeRegistraConLaGuiaEnElResultado()
+    {
+        var e = new Escenario();
+        var ana = e.Almacen.Sembrar(new Cliente("Ana", CategoriaCliente.Vip));
+        var pedido = e.Almacen.Sembrar(Escenario.PedidoDe(ana, TipoEntrega.Estandar, (CrearKitTeletrabajo(), 1)));
+        await e.Confirmar(pedido, "K-1");
+        var gestion = new GestionDespachoCasoUso(e.Almacen, e.Almacen, e.Almacen, e.Almacen, e.Planificador,
+            new UsuarioActualFalso(RolUsuario.Bodega));
+        var invocadorBodega = new InvocadorComandos(new UsuarioActualFalso(RolUsuario.Bodega, "jefe de bodega"));
+
+        var resultado = await invocadorBodega.EjecutarAsync(new DespacharPedidoCommand(gestion, pedido.Id));
+
+        Assert.True(resultado.Exitoso);
+        var registro = Assert.Single(invocadorBodega.Registro);
+        Assert.Equal("DespacharPedido", registro.Comando);
+        Assert.Contains("guía", registro.Resultado, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task ProcesarDevolucionCommand_UnRechazoDeNegocioTambienSeRegistra()
+    {
+        var e = new Escenario();
+        var ana = e.Almacen.Sembrar(new Cliente("Ana", CategoriaCliente.Vip));
+        var pedido = e.Almacen.Sembrar(Escenario.PedidoDe(ana, TipoEntrega.Estandar, (P01(), 1))); // sigue en BORRADOR
+        var proceso = new ProcesoDevolucionCasoUso(e.Almacen, e.Almacen, e.Almacen, e.Almacen, e.Almacen, e.Almacen,
+            new UsuarioActualFalso(RolUsuario.Ventas));
+        var comando = new ProcesarDevolucionCommand(
+            proceso, new SolicitudDevolucionDto(pedido.Id, MotivoDevolucion.Defecto, DateTime.UtcNow, false));
+
+        var resultado = await e.Invocador.EjecutarAsync(comando);
+
+        Assert.False(resultado.Exitoso);
+        var registro = Assert.Single(e.Invocador.Registro);
+        Assert.Equal("ProcesarDevolucion", registro.Comando);
+        Assert.False(registro.Exitoso);
     }
 }
