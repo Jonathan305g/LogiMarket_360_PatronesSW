@@ -10,41 +10,14 @@ using LogiMarket.Domain.Events;
 using LogiMarket.Domain.Orders.Builder;
 using LogiMarket.Domain.Pricing.Strategy;
 using LogiMarket.Tests.Fakes;
+using static LogiMarket.Tests.Fakes.Escenario;
 using static LogiMarket.Tests.Fakes.CatalogoDePrueba;
+
 
 namespace LogiMarket.Tests.Patterns.Structural;
 
 public class FacadeTests
 {
-    // Todo el "mundo" de una prueba: almacén falso, pasarela espía y el Facade ya armado.
-    private sealed class Escenario
-    {
-        public AlmacenEnMemoria Almacen { get; } = AlmacenEnMemoria.ConCatalogoOficial();
-        public PasarelaEspia Pasarela { get; } = new();
-        public ConfirmacionPedidoFacade Facade { get; }
-
-        public Escenario(RolUsuario rol = RolUsuario.Ventas)
-        {
-            Facade = new ConfirmacionPedidoFacade(
-                CadenaValidacionConfirmacion.Crear(),
-                Almacen,   // IClienteRepository
-                Almacen,   // IPedidoRepository
-                Almacen,   // IProductoRepository
-                Almacen,   // IPagoRepository
-                Almacen,   // IMovimientoInventarioRepository
-                Almacen,   // IOutbox
-                Almacen,   // IUnitOfWork
-                new CalculadoraDescuento(new IPoliticaDescuento[] { new SinDescuento(), new Vip10(), new Mayorista15() }),
-                new PlanificadorEntrega(new IFabricaEntrega[] { new FabricaEntregaEstandar(), new FabricaEntregaExpres() }),
-                Pasarela,
-                new UsuarioActualFalso(rol));
-        }
-
-        public Task<ResultadoConfirmacion> Confirmar(Pedido pedido, string clave) =>
-            Facade.ConfirmarAsync(new ConfirmarPedidoSolicitud(pedido.Id, clave));
-
-        public int Stock(string sku) => Almacen.ProductoPorSku(sku).Stock;
-    }
 
     private static Pedido PedidoDe(Cliente cliente, TipoEntrega entrega, params (IElementoCatalogo Item, int Cantidad)[] lineas)
     {
