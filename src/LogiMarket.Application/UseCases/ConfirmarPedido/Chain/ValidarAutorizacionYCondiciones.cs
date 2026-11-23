@@ -1,3 +1,4 @@
+using LogiMarket.Application.Security;
 using LogiMarket.Application.Validation;
 using LogiMarket.Domain.Enums;
 
@@ -8,7 +9,7 @@ public sealed class ValidarAutorizacionYCondiciones : EslabonValidacion
     protected override ErrorValidacion? Evaluar(ContextoConfirmacion contexto)
     {
         // Solo ADMIN y VENTAS confirman pedidos.
-        if (contexto.Rol is not (RolUsuario.Admin or RolUsuario.Ventas))
+        if (!PoliticaDeAcceso.PuedeCobrar(contexto.Rol))
             return new("NO_AUTORIZADO", $"El rol {contexto.Rol} no puede confirmar pedidos.");
 
         // Solo se confirma un pedido que todavía no fue pagado ni avanzó.

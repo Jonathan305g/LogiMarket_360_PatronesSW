@@ -19,4 +19,4 @@ public sealed class ResultadoValidacion
 
     public static ResultadoValidacion Rechazar(ErrorValidacion error, IEnumerable<string> traza) =>
         new(error, traza);
-}
+} 
