@@ -1,8 +1,8 @@
 using LogiMarket.Domain.Entities;
 
-namespace LogiMarket.Application.Repositories;
+namespace LogiMarket.Application.Abstractions.Repositories;
 
 public interface IMovimientoInventarioRepository
 {
-    Task<MovimientoInventario?> ObtenerPorIdAsync(Guid id);
+    void Agregar(MovimientoInventario movimiento);
 }

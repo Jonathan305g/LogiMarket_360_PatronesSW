@@ -1,14 +1,9 @@
-namespace LogiMarket.Application.Repositories;
+namespace LogiMarket.Application.Abstractions.Repositories;
 
+// La base detectó que otro proceso modificó los mismos datos (control optimista).
 public class ConflictoConcurrenciaException : Exception
 {
-    public ConflictoConcurrenciaException(string message)
-        : base(message)
-    {
-    }
-
-    public ConflictoConcurrenciaException(string message, Exception innerException)
-        : base(message, innerException)
+    public ConflictoConcurrenciaException() : base("Los datos cambiaron mientras se confirmaba la operación.")
     {
     }
 }

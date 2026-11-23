@@ -1,8 +1,9 @@
 using LogiMarket.Domain.Entities;
 
-namespace LogiMarket.Application.Repositories;
+namespace LogiMarket.Application.Abstractions.Repositories;
 
 public interface IProductoRepository
 {
-    Task<Producto?> ObtenerPorIdAsync(Guid id);
+    // Devuelve los productos reales (rastreados) para poder descontarles stock.
+    Task<IReadOnlyList<Producto>> ObtenerPorSkusAsync(IEnumerable<string> skus);
 }

@@ -1,6 +1,6 @@
 using LogiMarket.Domain.Entities;
 
-namespace LogiMarket.Application.Repositories;
+namespace LogiMarket.Application.Abstractions.Repositories;
 
 public interface IPedidoRepository
 {
