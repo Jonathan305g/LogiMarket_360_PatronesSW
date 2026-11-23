@@ -1,9 +1,25 @@
 namespace LogiMarket.Application.Abstractions.Gateways;
 
-// Lo que devuelve cualquier pasarela de pago, sea cual sea el proveedor.
-public record ResultadoCobro(bool Aprobado, string? Referencia, string? MotivoRechazo)
+public sealed class ResultadoCobro
 {
-    public static ResultadoCobro Exito(string referencia) => new(true, referencia, null);
+    public bool Aprobado { get; }
+    public string? Referencia { get; }
+    public string? MotivoRechazo { get; }
+
+    private ResultadoCobro(bool aprobado, string? referencia, string? motivoRechazo)
+    {
+        Aprobado = aprobado;
+        Referencia = referencia;
+        MotivoRechazo = motivoRechazo;
+    }
+
+    public static ResultadoCobro Exito(string referencia)
+    {
+        if (string.IsNullOrWhiteSpace(referencia))
+            throw new ArgumentException("Un cobro aprobado requiere referencia.", nameof(referencia));
+
+        return new ResultadoCobro(true, referencia, null);
+    }
 
     public static ResultadoCobro Rechazo(string motivo) => new(false, null, motivo);
 }
