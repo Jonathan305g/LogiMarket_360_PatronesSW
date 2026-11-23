@@ -13,7 +13,7 @@ namespace LogiMarket.Application.UseCases.ConfirmarPedido.Facade;
 
 // FACADE: una sola operación para el exterior; por dentro coordina a los especialistas.
 // No contiene SQL ni reglas de descuento: cada cosa la hace su colaborador.
-public sealed class ConfirmacionPedidoFacade
+public sealed class ConfirmacionPedidoFacade : IConfirmacionPedido
 {
     private readonly EslabonValidacion _cadena;
     private readonly IClienteRepository _clientes;

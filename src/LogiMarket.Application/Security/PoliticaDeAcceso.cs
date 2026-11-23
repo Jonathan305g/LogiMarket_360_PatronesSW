@@ -7,4 +7,6 @@ public static class PoliticaDeAcceso
 {
     public static bool PuedeCobrar(RolUsuario rol) =>
         rol is RolUsuario.Admin or RolUsuario.Ventas;
+    public static bool PuedeCancelar(RolUsuario rol) =>
+    rol is RolUsuario.Admin or RolUsuario.Ventas;
 }
