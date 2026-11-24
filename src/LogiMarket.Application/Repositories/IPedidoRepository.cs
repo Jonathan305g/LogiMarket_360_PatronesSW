@@ -5,4 +5,5 @@ namespace LogiMarket.Application.Abstractions.Repositories;
 public interface IPedidoRepository
 {
     Task<Pedido?> ObtenerPorIdAsync(Guid id);
+    void Agregar(Pedido pedido);
 }

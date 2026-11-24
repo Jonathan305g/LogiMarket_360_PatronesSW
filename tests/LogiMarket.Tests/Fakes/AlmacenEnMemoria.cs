@@ -12,6 +12,7 @@ public sealed class AlmacenEnMemoria : IClienteRepository, IPedidoRepository, IP
     private readonly Dictionary<Guid, Cliente> _clientes = new();
     private readonly List<Cliente> _clientesPendientes = new();
     private readonly Dictionary<Guid, Pedido> _pedidos = new();
+    private readonly List<Pedido> _pedidosPendientes = new();
     private readonly Dictionary<string, Producto> _productos = new(StringComparer.OrdinalIgnoreCase);
 
     // Cambios todavía no confirmados.
@@ -73,6 +74,7 @@ public sealed class AlmacenEnMemoria : IClienteRepository, IPedidoRepository, IP
     // ----- Escrituras: solo dejan pendiente -----
     public void Agregar(Pago pago) => _pagosPendientes.Add(pago);
     public void Agregar(Cliente cliente) => _clientesPendientes.Add(cliente);
+    public void Agregar(Pedido pedido) => _pedidosPendientes.Add(pedido);
     public void Agregar(MovimientoInventario movimiento) => _movimientosPendientes.Add(movimiento);
     public void Agregar(Despacho despacho) => _despachosPendientes.Add(despacho);       
     public void Agregar(Devolucion devolucion) => _devolucionesPendientes.Add(devolucion); 
@@ -85,6 +87,7 @@ public sealed class AlmacenEnMemoria : IClienteRepository, IPedidoRepository, IP
         {
             _pagosPendientes.Clear();
             _clientesPendientes.Clear();
+            _pedidosPendientes.Clear();
             _movimientosPendientes.Clear();
             _eventosPendientes.Clear();
             _despachosPendientes.Clear();
@@ -95,6 +98,8 @@ public sealed class AlmacenEnMemoria : IClienteRepository, IPedidoRepository, IP
         Pagos.AddRange(_pagosPendientes);
         foreach (var cliente in _clientesPendientes)
             _clientes[cliente.Id] = cliente;
+        foreach (var pedido in _pedidosPendientes)
+            _pedidos[pedido.Id] = pedido;
         Movimientos.AddRange(_movimientosPendientes);
         EventosOutbox.AddRange(_eventosPendientes);
         Despachos.AddRange(_despachosPendientes);
@@ -102,6 +107,7 @@ public sealed class AlmacenEnMemoria : IClienteRepository, IPedidoRepository, IP
 
         _pagosPendientes.Clear();
         _clientesPendientes.Clear();
+        _pedidosPendientes.Clear();
         _movimientosPendientes.Clear();
         _eventosPendientes.Clear();
         _despachosPendientes.Clear();

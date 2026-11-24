@@ -158,6 +158,26 @@ public sealed class RepositoriosEfTests : IDisposable
         Assert.Single(releido.Historial);
     }
 
+    [Fact]
+    public async Task PedidoRepositorio_Agregar_PersisteYSePuedeReleer()
+    {
+        await using var db = await CrearYSembrarAsync();
+        var cliente = new Cliente("Ana", CategoriaCliente.Vip);
+        db.Clientes.Add(cliente);
+        await db.SaveChangesAsync();
+        var producto = await db.Productos.FirstAsync(p => p.Sku == "P01");
+        var pedido = new PedidoBuilder().ConCliente(cliente).AgregarLinea(new ProductoSimple(producto), 2).Construir();
+
+        var repositorio = new PedidoRepositorioEf(db);
+        repositorio.Agregar(pedido);
+        await new UnitOfWorkEf(db).CommitAsync();
+
+        var releido = await repositorio.ObtenerPorIdAsync(pedido.Id);
+        Assert.NotNull(releido);
+        Assert.Single(releido!.Detalles);
+        Assert.Equal(2, releido.Detalles[0].Cantidad);
+    }
+
     public void Dispose()
     {
         if (File.Exists(_rutaBd))

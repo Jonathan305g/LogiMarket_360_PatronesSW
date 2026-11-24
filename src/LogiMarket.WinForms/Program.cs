@@ -77,6 +77,7 @@ internal static class Program
         servicios.AddTransient<PanelAcceso>();
         servicios.AddTransient<PanelCatalogo>();
         servicios.AddTransient<PanelClientes>();
+        servicios.AddTransient<PanelCarrito>();
         servicios.AddScoped<ICanalEmail, CanalEmailSimulado>();
         servicios.AddScoped<ICanalSms, CanalSmsSimulado>();
         servicios.AddScoped<CreadorAvisoEmail>();

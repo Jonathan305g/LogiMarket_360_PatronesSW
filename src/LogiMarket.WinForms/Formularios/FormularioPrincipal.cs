@@ -77,6 +77,8 @@ public sealed class FormularioPrincipal : Form
             () => _servicios.GetRequiredService<PanelCatalogo>());
         _mediador.RegistrarFabricaDePanel(TipoPanel.Clientes,
             () => _servicios.GetRequiredService<PanelClientes>());
+        _mediador.RegistrarFabricaDePanel(TipoPanel.Carrito,
+            () => _servicios.GetRequiredService<PanelCarrito>());
         _mediador.RegistrarFabricaDePanel(TipoPanel.PanelGeneral, () =>
         {
             var sesion = _servicios.GetRequiredService<UsuarioActualEnSesion>();
