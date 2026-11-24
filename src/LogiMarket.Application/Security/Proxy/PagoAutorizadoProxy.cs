@@ -24,7 +24,7 @@ public sealed class PagoAutorizadoProxy : IPasarelaPago
         if (!PoliticaDeAcceso.PuedeCobrar(_usuario.Rol))
         {
             // El intento queda en la auditoría de SEGURIDAD, no en el log del cobro.
-            _auditoria.RegistrarIntentoNoAutorizado(_usuario.Nombre, _usuario.Rol, "COBRAR");
+            await _auditoria.RegistrarAsync(_usuario.Nombre, _usuario.Rol.ToString(), "COBRAR", ct);
             throw new AccesoDenegadoException($"El rol {_usuario.Rol} no puede realizar cobros.");
         }
 

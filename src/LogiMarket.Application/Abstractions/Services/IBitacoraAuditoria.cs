@@ -8,4 +8,7 @@ public interface IBitacoraAuditoria
 
     Task RegistrarAsync(string tipoEvento, string detalle, DateTime ocurrioUtc, CancellationToken ct = default) =>
         RegistrarAsync(tipoEvento, detalle, ct);
+
+    Task<IReadOnlyList<RegistroAuditoriaDto>> ListarRecientesAsync(int limite = 100, CancellationToken ct = default) =>
+        Task.FromResult<IReadOnlyList<RegistroAuditoriaDto>>(Array.Empty<RegistroAuditoriaDto>());
 }
