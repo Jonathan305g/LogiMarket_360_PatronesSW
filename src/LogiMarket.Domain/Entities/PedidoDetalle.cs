@@ -24,6 +24,8 @@ public class PedidoDetalle
 
     public Dinero Subtotal => PrecioUnitario * Cantidad;
 
+    private PedidoDetalle() { Sku = string.Empty; Nombre = string.Empty; _componentes = new(); } // EF Core
+
     // "internal": solo Pedido (mismo proyecto) puede crear y modificar líneas.
     internal PedidoDetalle(string sku, string nombre, Dinero precioUnitario, int cantidad,
         IEnumerable<ComponenteFisico> componentes)

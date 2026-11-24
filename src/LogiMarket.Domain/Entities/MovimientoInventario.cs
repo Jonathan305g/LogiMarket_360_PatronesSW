@@ -13,6 +13,8 @@ public class MovimientoInventario
     public Guid Referencia { get; private set; } // el pedido que lo originó
     public DateTime FechaUtc { get; private set; }
 
+    private MovimientoInventario() { Sku = string.Empty; } // EF Core
+
     public MovimientoInventario(string sku, int cantidad, MotivoMovimiento motivo, Guid referencia, DateTime fechaUtc)
     {
         if (string.IsNullOrWhiteSpace(sku))

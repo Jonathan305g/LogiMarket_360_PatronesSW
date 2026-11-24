@@ -15,6 +15,8 @@ public class Devolucion
     // SKU y cantidades que deben volver al inventario (una sola vez).
     public IReadOnlyList<ComponenteFisico> Reintegros { get; private set; }
 
+    private Devolucion() { Reintegros = new List<ComponenteFisico>(); } // EF Core
+
     // "internal": solo el proceso de devolución (dentro de Domain) puede crear una.
     internal Devolucion(Guid pedidoId, MotivoDevolucion motivo, Dinero reembolso,
         DateTime fechaUtc, IEnumerable<ComponenteFisico> reintegros)

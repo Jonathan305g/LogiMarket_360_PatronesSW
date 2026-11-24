@@ -13,6 +13,8 @@ public class Pago
     public string ClaveIdempotencia { get; private set; }
     public DateTime FechaUtc { get; private set; }
 
+    private Pago() { Referencia = string.Empty; ClaveIdempotencia = string.Empty; } // EF Core
+
     public Pago(Guid pedidoId, Dinero monto, string referencia, string claveIdempotencia, DateTime fechaUtc)
     {
         if (pedidoId == Guid.Empty)

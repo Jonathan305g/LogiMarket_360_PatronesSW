@@ -10,6 +10,8 @@ public class Despacho
     public string Guia { get; private set; }
     public DateTime FechaUtc { get; private set; }
 
+    private Despacho() { Guia = string.Empty; } // EF Core
+
     // "public": a diferencia de Pago, aquí es Application (no Domain) quien lo crea,
     // igual que ya hace con Pago y MovimientoInventario.
     public Despacho(Guid pedidoId, string guia, DateTime fechaUtc)

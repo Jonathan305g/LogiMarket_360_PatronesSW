@@ -16,6 +16,8 @@ public class Producto
     public decimal PesoKg { get; private set; }
     public int Stock { get; private set; }
 
+    private Producto() { Sku = string.Empty; Nombre = string.Empty; } // EF Core
+
     public Producto(string sku, string nombre, Dinero precio, decimal pesoKg, int stock)
     {
         // Se valida TODO antes de asignar nada. Si algo falla, el objeto nunca llega

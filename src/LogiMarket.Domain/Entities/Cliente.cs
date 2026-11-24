@@ -13,6 +13,8 @@ public class Cliente
     // Por eso guardamos el estado en vez de borrar clientes.
     public bool Activo { get; private set; }
 
+    private Cliente() { Nombre = string.Empty; } // EF Core
+
     public Cliente(string nombre, CategoriaCliente categoria)
     {
         if (string.IsNullOrWhiteSpace(nombre))

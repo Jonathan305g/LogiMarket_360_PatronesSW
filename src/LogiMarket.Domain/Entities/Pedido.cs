@@ -21,8 +21,15 @@ public class Pedido : IPrototipo<Pedido>
     public Dinero Tarifa { get; private set; } = Dinero.Cero;
     public DateTime? FechaEntregaUtc { get; private set; }
     public bool Devuelto { get; private set; }
-
     public EstadoPedido Estado => _estado.Estado;
+
+    private Pedido() { }
+
+    private EstadoPedido EstadoPersistido
+    {
+        get => _estado.Estado;
+        set => _estado = FabricaEstados.Reconstruir(value);
+    }
     public IReadOnlyList<CambioEstado> Historial => _historial;
     public IReadOnlyList<PedidoDetalle> Detalles => _detalles;
 
