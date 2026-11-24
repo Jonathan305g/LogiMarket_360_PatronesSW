@@ -1,15 +1,20 @@
 using LogiMarket.WinForms.Mediador;
+using LogiMarket.WinForms.Controles;
+using LogiMarket.WinForms.Sesion;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace LogiMarket.WinForms.Formularios;
 
 public sealed class FormularioPrincipal : Form
 {
     private readonly IMediadorPrincipal _mediador;
+    private readonly IServiceProvider _servicios;
     private readonly Panel _panelContenido = new() { Dock = DockStyle.Fill };
 
-    public FormularioPrincipal(IMediadorPrincipal mediador)
+    public FormularioPrincipal(IMediadorPrincipal mediador, IServiceProvider servicios)
     {
         _mediador = mediador;
+        _servicios = servicios;
         Text = "LogiMarket 360";
         Width = 1024;
         Height = 700;
@@ -41,7 +46,7 @@ public sealed class FormularioPrincipal : Form
         Controls.Add(_panelContenido);
         Controls.Add(navegacion);
         _mediador.RegistrarPanelPrincipal(_panelContenido);
-        RegistrarPanelesDeEjemplo();
+        RegistrarPaneles();
         _mediador.MostrarPanel(TipoPanel.Acceso);
     }
 
@@ -52,7 +57,7 @@ public sealed class FormularioPrincipal : Form
         contenedor.Controls.Add(boton);
     }
 
-    private void RegistrarPanelesDeEjemplo()
+    private void RegistrarPaneles()
     {
         foreach (var panel in Enum.GetValues<TipoPanel>())
         {
@@ -65,5 +70,18 @@ public sealed class FormularioPrincipal : Form
                     Padding = new Padding(16)
                 });
         }
+
+        _mediador.RegistrarFabricaDePanel(TipoPanel.Acceso,
+            () => _servicios.GetRequiredService<PanelAcceso>());
+        _mediador.RegistrarFabricaDePanel(TipoPanel.PanelGeneral, () =>
+        {
+            var sesion = _servicios.GetRequiredService<UsuarioActualEnSesion>();
+            return new Label
+            {
+                Text = $"Bienvenido, {sesion.NombreUsuario} ({sesion.Rol})",
+                AutoSize = true,
+                Padding = new Padding(16)
+            };
+        });
     }
 }

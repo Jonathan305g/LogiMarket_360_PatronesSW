@@ -2,6 +2,7 @@ using LogiMarket.Domain.Entities;
 using LogiMarket.Domain.Enums;
 using LogiMarket.Domain.ValueObjects;
 using LogiMarket.Infrastructure.Persistence.Models;
+using LogiMarket.Infrastructure.Seguridad;
 using Microsoft.EntityFrameworkCore;
 
 namespace LogiMarket.Infrastructure.Persistence.Seed;
@@ -68,22 +69,25 @@ public static class DatosSemilla
 
     private static async Task SembrarUsuariosAsync(LogiMarketDbContext db, CancellationToken ct)
     {
-        var cuentas = new (string Usuario, RolUsuario Rol)[]
+        var hasher = new HasherContrasenaPbkdf2();
+        var cuentas = new (string Usuario, string Contrasena, RolUsuario Rol)[]
         {
-            ("admin", RolUsuario.Admin),
-            ("ventas", RolUsuario.Ventas),
-            ("bodega", RolUsuario.Bodega),
-            ("consulta", RolUsuario.Consulta),
+            ("admin", "Admin123!", RolUsuario.Admin),
+            ("ventas", "Ventas123!", RolUsuario.Ventas),
+            ("bodega", "Bodega123!", RolUsuario.Bodega),
+            ("consulta", "Consulta123!", RolUsuario.Consulta),
         };
 
-        foreach (var (nombre, rol) in cuentas)
+        foreach (var (nombre, contrasena, rol) in cuentas)
         {
-            if (!await db.Usuarios.AnyAsync(u => u.NombreUsuario == nombre, ct))
-                db.Usuarios.Add(new Usuario(nombre, HashDemostracion(nombre), rol));
+            var existente = await db.Usuarios.FirstOrDefaultAsync(u => u.NombreUsuario == nombre, ct);
+            if (existente is null)
+                db.Usuarios.Add(new Usuario(nombre, hasher.Hashear(contrasena), rol));
+            else if (existente.HashContrasena == HashLegadoSinSal(nombre))
+                existente.ActualizarHashContrasena(hasher.Hashear(contrasena));
         }
     }
 
-    // Marcador temporal (SHA-256 sin sal): el paso de seguridad lo reemplaza por un hash robusto.
-    private static string HashDemostracion(string valor) =>
+    private static string HashLegadoSinSal(string valor) =>
         Convert.ToBase64String(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(valor)));
 }

@@ -28,6 +28,14 @@ public class Usuario
 
     private Usuario() { NombreUsuario = string.Empty; HashContrasena = string.Empty; } // EF Core
 
+    public void ActualizarHashContrasena(string hashContrasena)
+    {
+        if (string.IsNullOrWhiteSpace(hashContrasena))
+            throw new DomainException("El hash de contraseña es obligatorio.");
+
+        HashContrasena = hashContrasena;
+    }
+
     public void Desactivar() => Activo = false;
     public void Activar() => Activo = true;
 }

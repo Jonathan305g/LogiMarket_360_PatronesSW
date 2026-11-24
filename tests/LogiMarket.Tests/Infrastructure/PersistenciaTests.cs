@@ -4,6 +4,7 @@ using LogiMarket.Domain.Orders.Builder;
 using LogiMarket.Domain.ValueObjects;
 using LogiMarket.Infrastructure.Persistence;
 using LogiMarket.Infrastructure.Persistence.Seed;
+using LogiMarket.Infrastructure.Seguridad;
 using Microsoft.EntityFrameworkCore;
 using static LogiMarket.Tests.Fakes.CatalogoDePrueba;
 
@@ -50,6 +51,22 @@ public class PersistenciaTests : IDisposable
         Assert.Equal(5, await db.Productos.CountAsync());
         Assert.Equal(2, await db.Kits.CountAsync());
         Assert.Equal(4, await db.Usuarios.CountAsync());
+    }
+
+    [Fact]
+    public async Task Sembrar_ActualizaElHashLegadoDeLaCuentaAdminSinBorrarLaBase()
+    {
+        await using var db = CrearContexto();
+        await db.Database.MigrateAsync();
+        var hashAnterior = Convert.ToBase64String(System.Security.Cryptography.SHA256.HashData(
+            System.Text.Encoding.UTF8.GetBytes("admin")));
+        db.Usuarios.Add(new Usuario("admin", hashAnterior, RolUsuario.Admin));
+        await db.SaveChangesAsync();
+
+        await DatosSemilla.SembrarAsync(db);
+
+        var admin = await db.Usuarios.SingleAsync(u => u.NombreUsuario == "admin");
+        Assert.True(new HasherContrasenaPbkdf2().Verificar("Admin123!", admin.HashContrasena));
     }
 
     [Fact]
