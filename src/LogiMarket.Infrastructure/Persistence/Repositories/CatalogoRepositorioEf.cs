@@ -8,6 +8,18 @@ namespace LogiMarket.Infrastructure.Persistence.Repositories;
 
 public sealed class CatalogoRepositorioEf(LogiMarketDbContext db) : ICatalogoRepository
 {
+    public async Task<IReadOnlyList<ResumenElementoCatalogo>> ListarResumenAsync(CancellationToken ct = default)
+    {
+        var productos = await db.Productos.AsNoTracking()
+            .Select(p => new ResumenElementoCatalogo(p.Sku, p.Nombre, false, p.Stock))
+            .ToListAsync(ct);
+        var kits = await db.Kits.AsNoTracking()
+            .Select(k => new ResumenElementoCatalogo(k.Sku, k.Nombre, true, null))
+            .ToListAsync(ct);
+
+        return productos.Concat(kits).OrderBy(r => r.Sku).ToArray();
+    }
+
     public Task<IElementoCatalogo?> ObtenerPorSkuAsync(string sku)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(sku);

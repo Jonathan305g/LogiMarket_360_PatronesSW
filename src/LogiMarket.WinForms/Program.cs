@@ -75,6 +75,7 @@ internal static class Program
         servicios.AddSingleton<IHasherContrasena, HasherContrasenaPbkdf2>();
         servicios.AddScoped<IInicioSesionCasoUso, InicioSesionCasoUso>();
         servicios.AddTransient<PanelAcceso>();
+        servicios.AddTransient<PanelCatalogo>();
         servicios.AddScoped<ICanalEmail, CanalEmailSimulado>();
         servicios.AddScoped<ICanalSms, CanalSmsSimulado>();
         servicios.AddScoped<CreadorAvisoEmail>();

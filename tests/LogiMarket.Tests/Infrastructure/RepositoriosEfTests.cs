@@ -77,6 +77,22 @@ public sealed class RepositoriosEfTests : IDisposable
     }
 
     [Fact]
+    public async Task CatalogoRepositorio_ListarResumen_IncluyeProductosYKitsConSuTipo()
+    {
+        await using var db = await CrearYSembrarAsync();
+
+        var resumen = await new CatalogoRepositorioEf(db).ListarResumenAsync();
+
+        Assert.Equal(7, resumen.Count);
+        var p01 = resumen.Single(r => r.Sku == "P01");
+        Assert.False(p01.EsKit);
+        Assert.Equal(8, p01.Stock);
+        var kit = resumen.Single(r => r.Sku == "KIT_OFICINA");
+        Assert.True(kit.EsKit);
+        Assert.Null(kit.Stock);
+    }
+
+    [Fact]
     public async Task OutboxYUnitOfWork_GuardanElEventoConSuTipoYDatos()
     {
         await using var db = await CrearYSembrarAsync();
