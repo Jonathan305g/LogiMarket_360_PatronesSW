@@ -5,14 +5,14 @@ namespace LogiMarket.Infrastructure.Comprobantes;
 // Implementor concreto que guarda el comprobante como archivo de texto.
 public sealed class ArchivoTXT : ISalidaDocumento
 {
-    private readonly string _ruta;
+    private readonly string _directorio;
 
-    public ArchivoTXT(string ruta = "comprobante.txt")
+    public ArchivoTXT(string directorio = "Comprobantes")
     {
-        if (string.IsNullOrWhiteSpace(ruta))
-            throw new ArgumentException("La ruta del comprobante es obligatoria.", nameof(ruta));
+        if (string.IsNullOrWhiteSpace(directorio))
+            throw new ArgumentException("La carpeta de comprobantes es obligatoria.", nameof(directorio));
 
-        _ruta = ruta;
+        _directorio = directorio;
     }
 
     public string Entregar(string titulo, IReadOnlyList<string> lineas)
@@ -27,11 +27,10 @@ public sealed class ArchivoTXT : ISalidaDocumento
             sb.AppendLine(linea);
 
         var contenido = sb.ToString();
-        var directorio = Path.GetDirectoryName(_ruta);
-        if (!string.IsNullOrEmpty(directorio))
-            Directory.CreateDirectory(directorio);
+        Directory.CreateDirectory(_directorio);
+        var ruta = Path.Combine(_directorio, $"comprobante_{Guid.NewGuid():N}.txt");
 
-        File.WriteAllText(_ruta, contenido);
-        return contenido;
+        File.WriteAllText(ruta, contenido);
+        return ruta;
     }
 }

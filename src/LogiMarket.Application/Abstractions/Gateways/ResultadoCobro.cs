@@ -3,6 +3,7 @@ namespace LogiMarket.Application.Abstractions.Gateways;
 public sealed class ResultadoCobro
 {
     public bool Aprobado { get; }
+    public bool Exitoso => Aprobado;
     public string? Referencia { get; }
     public string? MotivoRechazo { get; }
 

@@ -8,7 +8,7 @@ public sealed class ObservadorAuditoria : IObservadorEventos
     private readonly IBitacoraAuditoria _bitacora;
     public ObservadorAuditoria(IBitacoraAuditoria bitacora) => _bitacora = bitacora;
 
-    public Task ManejarAsync(IEventoDominio evento, CancellationToken ct = default)
+    public async Task ManejarAsync(IEventoDominio evento, CancellationToken ct = default)
     {
         var detalle = evento switch
         {
@@ -18,7 +18,6 @@ public sealed class ObservadorAuditoria : IObservadorEventos
             _ => evento.GetType().Name
         };
 
-        _bitacora.Registrar(evento.GetType().Name, detalle, evento.OcurrioUtc);
-        return Task.CompletedTask;
+        await _bitacora.RegistrarAsync(evento.GetType().Name, detalle, evento.OcurrioUtc, ct);
     }
 }

@@ -29,6 +29,10 @@ public sealed class BitacoraAuditoriaEspia : IBitacoraAuditoria
 {
     public List<(string TipoEvento, string Detalle, DateTime OcurrioUtc)> Registros { get; } = new();
 
-    public void Registrar(string tipoEvento, string detalle, DateTime ocurrioUtc) =>
-        Registros.Add((tipoEvento, detalle, ocurrioUtc));
+    public Task RegistrarAsync(string tipoEvento, string detalle, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+        Registros.Add((tipoEvento, detalle, DateTime.UtcNow));
+        return Task.CompletedTask;
+    }
 }
