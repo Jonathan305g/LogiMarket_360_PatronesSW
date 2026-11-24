@@ -196,7 +196,7 @@ namespace LogiMarket.Infrastructure.Migrations
                 columns: table => new
                 {
                     DevolucionId = table.Column<Guid>(type: "TEXT", nullable: false),
-                    Id = table.Column<int>(type: "INTEGER", nullable: false),
+                    Id = table.Column<Guid>(type: "TEXT", nullable: false),
                     Sku = table.Column<string>(type: "TEXT", maxLength: 20, nullable: false),
                     Cantidad = table.Column<int>(type: "INTEGER", nullable: false)
                 },
@@ -260,7 +260,7 @@ namespace LogiMarket.Infrastructure.Migrations
                 columns: table => new
                 {
                     PedidoId = table.Column<Guid>(type: "TEXT", nullable: false),
-                    Id = table.Column<int>(type: "INTEGER", nullable: false),
+                    Id = table.Column<Guid>(type: "TEXT", nullable: false),
                     Anterior = table.Column<string>(type: "TEXT", maxLength: 20, nullable: false),
                     Nuevo = table.Column<string>(type: "TEXT", maxLength: 20, nullable: false),
                     FechaUtc = table.Column<DateTime>(type: "TEXT", nullable: false)
@@ -281,7 +281,7 @@ namespace LogiMarket.Infrastructure.Migrations
                 columns: table => new
                 {
                     PedidoDetalleId = table.Column<Guid>(type: "TEXT", nullable: false),
-                    Id = table.Column<int>(type: "INTEGER", nullable: false),
+                    Id = table.Column<Guid>(type: "TEXT", nullable: false),
                     Sku = table.Column<string>(type: "TEXT", maxLength: 20, nullable: false),
                     Cantidad = table.Column<int>(type: "INTEGER", nullable: false)
                 },

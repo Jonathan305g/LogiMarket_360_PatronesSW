@@ -11,11 +11,11 @@ public class PasarelaModernaSimulada : IPasarelaPago
     public Task<ResultadoCobro> CobrarAsync(decimal monto, string claveIdempotencia, CancellationToken ct = default)
     {
         if (!_clavesUsadas.Add(claveIdempotencia))
-            return Task.FromResult(new ResultadoCobro(false, string.Empty, "CLAVE_DUPLICADA"));
+            return Task.FromResult(ResultadoCobro.Rechazo("CLAVE_DUPLICADA"));
 
         if (monto <= 0)
-            return Task.FromResult(new ResultadoCobro(false, string.Empty, "MONTO_INVALIDO"));
+            return Task.FromResult(ResultadoCobro.Rechazo("MONTO_INVALIDO"));
 
-        return Task.FromResult(new ResultadoCobro(true, ("MOD-" + Guid.NewGuid().ToString("N"))[..12].ToUpperInvariant(), null));
+        return Task.FromResult(ResultadoCobro.Exito(("MOD-" + Guid.NewGuid().ToString("N"))[..12].ToUpperInvariant()));
     }
 }

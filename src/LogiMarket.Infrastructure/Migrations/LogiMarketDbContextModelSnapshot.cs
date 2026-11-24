@@ -394,9 +394,9 @@ namespace LogiMarket.Infrastructure.Migrations
                             b1.Property<Guid>("DevolucionId")
                                 .HasColumnType("TEXT");
 
-                            b1.Property<int>("Id")
+                            b1.Property<Guid>("Id")
                                 .ValueGeneratedOnAdd()
-                                .HasColumnType("INTEGER");
+                                .HasColumnType("TEXT");
 
                             b1.Property<int>("Cantidad")
                                 .HasColumnType("INTEGER");
@@ -458,9 +458,9 @@ namespace LogiMarket.Infrastructure.Migrations
                                     b2.Property<Guid>("PedidoDetalleId")
                                         .HasColumnType("TEXT");
 
-                                    b2.Property<int>("Id")
+                                    b2.Property<Guid>("Id")
                                         .ValueGeneratedOnAdd()
-                                        .HasColumnType("INTEGER");
+                                        .HasColumnType("TEXT");
 
                                     b2.Property<int>("Cantidad")
                                         .HasColumnType("INTEGER");
@@ -486,9 +486,9 @@ namespace LogiMarket.Infrastructure.Migrations
                             b1.Property<Guid>("PedidoId")
                                 .HasColumnType("TEXT");
 
-                            b1.Property<int>("Id")
+                            b1.Property<Guid>("Id")
                                 .ValueGeneratedOnAdd()
-                                .HasColumnType("INTEGER");
+                                .HasColumnType("TEXT");
 
                             b1.Property<string>("Anterior")
                                 .IsRequired()

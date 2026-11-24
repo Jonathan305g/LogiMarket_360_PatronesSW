@@ -24,7 +24,7 @@ public class PersistenciaTests : IDisposable
     }
 
     private LogiMarketDbContext CrearContexto() =>
-        new(new DbContextOptionsBuilder<LogiMarketDbContext>().UseSqlite($"Data Source={_rutaBd}").Options);
+        new(new DbContextOptionsBuilder<LogiMarketDbContext>().UseSqlite($"Data Source={_rutaBd};Pooling=False").Options);
 
     [Fact]
     public async Task Migrar_DesdeArchivoInexistente_CreaLasTablas()   // P01
@@ -110,7 +110,10 @@ public class PersistenciaTests : IDisposable
 
         // --- Sesión 2: un contexto NUEVO, como si se hubiera reabierto la aplicación ---
         await using var db2 = CrearContexto();
-        var releido = await db2.Pedidos.Include("_detalles").Include("_historial").FirstAsync(p => p.Id == pedidoId);
+        var releido = await db2.Pedidos
+            .Include(p => p.Detalles).ThenInclude(d => d.Componentes)
+            .Include(p => p.Historial)
+            .FirstAsync(p => p.Id == pedidoId);
 
         Assert.Equal(EstadoPedido.Pagado, releido.Estado);       // el State se reconstruyó bien
         Assert.Equal(59m, releido.Total.Valor);                   // 60 - 6 + 5

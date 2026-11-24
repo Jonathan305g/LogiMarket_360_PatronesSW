@@ -28,7 +28,7 @@ public class PedidoConfiguration : IEntityTypeConfiguration<Pedido>
         {
             h.ToTable("PedidoHistorialEstado");
             h.WithOwner().HasForeignKey("PedidoId");
-            h.Property<int>("Id");
+            h.Property<Guid>("Id");
             h.HasKey("PedidoId", "Id");
             h.Property(c => c.Anterior).HasConversion<string>().HasMaxLength(20);
             h.Property(c => c.Nuevo).HasConversion<string>().HasMaxLength(20);
@@ -51,7 +51,7 @@ public class PedidoConfiguration : IEntityTypeConfiguration<Pedido>
             {
                 c.ToTable("PedidoDetalleComponentes");
                 c.WithOwner().HasForeignKey("PedidoDetalleId");
-                c.Property<int>("Id");
+                c.Property<Guid>("Id");
                 c.HasKey("PedidoDetalleId", "Id");
                 c.Property(x => x.Sku).IsRequired().HasMaxLength(20);
                 c.Property(x => x.Cantidad).IsRequired();

@@ -21,8 +21,8 @@ public class AdaptadorPasarelaLegada : IPasarelaPago
         var (ok, codigo) = _legada.CobrarCentavos(centavos, claveIdempotencia);
 
         var resultado = ok
-            ? new ResultadoCobro(true, codigo, null)
-            : new ResultadoCobro(false, string.Empty, codigo);
+            ? ResultadoCobro.Exito(codigo)
+            : ResultadoCobro.Rechazo(codigo);
 
         return Task.FromResult(resultado);
     }

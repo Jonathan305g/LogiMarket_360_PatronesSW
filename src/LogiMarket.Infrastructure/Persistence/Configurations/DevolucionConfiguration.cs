@@ -20,7 +20,7 @@ public class DevolucionConfiguration : IEntityTypeConfiguration<Devolucion>
         {
             r.ToTable("DevolucionReintegros");
             r.WithOwner().HasForeignKey("DevolucionId");
-            r.Property<int>("Id");
+            r.Property<Guid>("Id");
             r.HasKey("DevolucionId", "Id");
             r.Property(x => x.Sku).IsRequired().HasMaxLength(20);
             r.Property(x => x.Cantidad).IsRequired();

@@ -19,23 +19,23 @@ public class AuditoriaPagoDecorator : IPasarelaPago
     public async Task<ResultadoCobro> CobrarAsync(decimal monto, string claveIdempotencia, CancellationToken ct = default)
     {
         var correlacion = Guid.NewGuid();
-        await _bitacora.RegistrarAsync("CobroPasarela", $"INICIO correlacion={correlacion} monto={monto:F2} clave={claveIdempotencia}", ct);
+        _bitacora.Registrar("CobroPasarela", $"INICIO correlacion={correlacion} monto={monto:F2} clave={claveIdempotencia}", DateTime.UtcNow);
 
         try
         {
             var resultado = await _interno.CobrarAsync(monto, claveIdempotencia, ct);
 
-            await _bitacora.RegistrarAsync("CobroPasarela",
-                resultado.Exitoso
+            _bitacora.Registrar("CobroPasarela",
+                resultado.Aprobado
                     ? $"FIN correlacion={correlacion} referencia={resultado.Referencia}"
-                    : $"FIN correlacion={correlacion} rechazado={resultado.Error}",
-                ct);
+                    : $"FIN correlacion={correlacion} rechazado={resultado.MotivoRechazo}",
+                DateTime.UtcNow);
 
             return resultado;
         }
         catch (Exception ex)
         {
-            await _bitacora.RegistrarAsync("CobroPasarela", $"ERROR correlacion={correlacion} excepcion={ex.Message}", ct);
+            _bitacora.Registrar("CobroPasarela", $"ERROR correlacion={correlacion} excepcion={ex.Message}", DateTime.UtcNow);
             throw;
         }
     }
