@@ -93,6 +93,21 @@ public sealed class RepositoriosEfTests : IDisposable
     }
 
     [Fact]
+    public async Task ClienteRepositorio_AgregarYListar_FuncionaTrasCommit()
+    {
+        await using var db = await CrearYSembrarAsync();
+        var repo = new ClienteRepositorioEf(db);
+        var uow = new UnitOfWorkEf(db);
+
+        repo.Agregar(new Cliente("Carlos Ruiz", CategoriaCliente.Normal));
+        await uow.CommitAsync();
+
+        var creado = Assert.Single(await repo.ListarAsync(), c => c.Nombre == "Carlos Ruiz");
+        Assert.Equal(CategoriaCliente.Normal, creado.Categoria);
+        Assert.NotNull(await repo.ObtenerPorIdAsync(creado.Id));
+    }
+
+    [Fact]
     public async Task OutboxYUnitOfWork_GuardanElEventoConSuTipoYDatos()
     {
         await using var db = await CrearYSembrarAsync();
