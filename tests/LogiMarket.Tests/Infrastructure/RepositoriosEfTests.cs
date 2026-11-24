@@ -178,6 +178,25 @@ public sealed class RepositoriosEfTests : IDisposable
         Assert.Equal(2, releido.Detalles[0].Cantidad);
     }
 
+    [Fact]
+    public async Task PedidoRepositorio_ListarResumen_DevuelveEstadoClienteYTotal()
+    {
+        await using var db = await CrearYSembrarAsync();
+        var cliente = new Cliente("Ana", CategoriaCliente.Vip);
+        var pedido = new PedidoBuilder().ConCliente(cliente).AgregarLinea(P01(), 2).Construir();
+        db.Pedidos.Add(pedido);
+        db.Clientes.Add(cliente);
+        await db.SaveChangesAsync();
+        db.ChangeTracker.Clear();
+
+        var resumen = await new PedidoRepositorioEf(db).ListarResumenAsync();
+
+        var fila = Assert.Single(resumen);
+        Assert.Equal(cliente.Nombre, fila.Cliente);
+        Assert.Equal(EstadoPedido.Borrador, fila.Estado);
+        Assert.Equal(40m, fila.Total);
+    }
+
     public void Dispose()
     {
         if (File.Exists(_rutaBd))

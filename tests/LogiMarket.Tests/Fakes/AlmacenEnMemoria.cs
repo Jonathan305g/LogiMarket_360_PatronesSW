@@ -53,11 +53,16 @@ public sealed class AlmacenEnMemoria : IClienteRepository, IPedidoRepository, IP
     Task<Cliente?> IClienteRepository.ObtenerPorIdAsync(Guid id) =>
         Task.FromResult(_clientes.GetValueOrDefault(id));
 
-    public Task<IReadOnlyList<Cliente>> ListarAsync() =>
+    Task<IReadOnlyList<Cliente>> IClienteRepository.ListarAsync() =>
         Task.FromResult<IReadOnlyList<Cliente>>(_clientes.Values.OrderBy(c => c.Nombre).ToList());
 
     Task<Pedido?> IPedidoRepository.ObtenerPorIdAsync(Guid id) =>
         Task.FromResult(_pedidos.GetValueOrDefault(id));
+
+    public Task<IReadOnlyList<ResumenPedido>> ListarResumenAsync() =>
+        Task.FromResult<IReadOnlyList<ResumenPedido>>(_pedidos.Values
+            .Select(p => new ResumenPedido(p.Id, "(cliente)", p.Estado, p.Total.Valor))
+            .ToList());
 
     public Task<IReadOnlyList<Producto>> ObtenerPorSkusAsync(IEnumerable<string> skus)
     {
@@ -116,4 +121,7 @@ public sealed class AlmacenEnMemoria : IClienteRepository, IPedidoRepository, IP
 
         return Task.CompletedTask;
     }
+
+    Task<IReadOnlyList<MovimientoInventario>> IMovimientoInventarioRepository.ListarAsync() =>
+        Task.FromResult<IReadOnlyList<MovimientoInventario>>(Movimientos.ToList());
 }
