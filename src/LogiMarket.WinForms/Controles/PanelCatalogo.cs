@@ -4,6 +4,7 @@ using LogiMarket.Domain.Catalog.Composite;
 using LogiMarket.Domain.Catalog.Visitor;
 using LogiMarket.WinForms.Sesion;
 using LogiMarket.Application.Security;
+using LogiMarket.WinForms.Mediador;
 
 namespace LogiMarket.WinForms.Controles;
 
@@ -13,6 +14,7 @@ public sealed class PanelCatalogo : UserControl
     private readonly ICatalogoRepository _catalogo;
     private readonly IGestionCatalogo _gestion;
     private readonly UsuarioActualEnSesion _sesion;
+    private readonly IMediadorPrincipal _mediador;
     private readonly Label _lblMensaje = new() { AutoSize = true, Font = EstiloUi.FuenteNormal };
 
     private readonly TextBox _txtBuscar = new() { Width = 280, Font = EstiloUi.FuenteNormal };
@@ -30,16 +32,18 @@ public sealed class PanelCatalogo : UserControl
 
     private List<ResumenElementoCatalogo> _elementos = new();
 
-    public PanelCatalogo(ICatalogoRepository catalogo, IGestionCatalogo gestion, UsuarioActualEnSesion sesion)
+    public PanelCatalogo(ICatalogoRepository catalogo, IGestionCatalogo gestion, UsuarioActualEnSesion sesion, IMediadorPrincipal mediador)
     {
         _catalogo = catalogo;
         _gestion = gestion;
         _sesion = sesion;
+        _mediador = mediador;
 
         Dock = DockStyle.Fill;
         BackColor = Color.White;
 
         ConstruirInterfaz();
+        _mediador.RegistrarActualizacion(TipoPanel.Catalogo, CargarAsync);
         Load += async (_, _) => await CargarAsync();
     }
 
@@ -156,7 +160,7 @@ public sealed class PanelCatalogo : UserControl
         Controls.Add(encabezado);
     }
 
-    private async Task CargarAsync()
+    public async Task CargarAsync()
     {
         _elementos = (await _catalogo.ListarResumenAsync()).ToList();
         Filtrar();

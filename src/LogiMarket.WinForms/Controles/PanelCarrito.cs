@@ -20,6 +20,7 @@ public sealed class PanelCarrito : UserControl
 
     private readonly HistorialEdiciones _historial = new();
     private Pedido? _pedido;
+    private Pedido? _plantilla;
     private Cliente? _clienteActual;
 
     private readonly ComboBox _cmbCliente = new() { Width = 170, DropDownStyle = ComboBoxStyle.DropDownList, Font = EstiloUi.FuenteNormal };
@@ -33,6 +34,8 @@ public sealed class PanelCarrito : UserControl
     private readonly Button _btnDeshacer = new() { Text = "Deshacer", Width = 95 };
     private readonly Button _btnRehacer = new() { Text = "Rehacer", Width = 95 };
     private readonly Button _btnQuitar = new() { Text = "Quitar línea", Width = 110 };
+    private readonly Button _btnClonar = new() { Text = "Crear plantilla", Width = 110 };
+    private readonly Button _btnUsarPlantilla = new() { Text = "Usar plantilla", Width = 110, Enabled = false };
 
     private readonly Label _lblSubtotal = new() { Text = "USD 0.00", Font = EstiloUi.FuenteNegrita, ForeColor = EstiloUi.ColorTexto, AutoSize = true };
     private readonly Label _lblDescuento = new() { Text = "USD 0.00", Font = EstiloUi.FuenteNegrita, ForeColor = EstiloUi.ColorPeligro, AutoSize = true };
@@ -124,14 +127,20 @@ public sealed class PanelCarrito : UserControl
         EstiloUi.AplicarBotonSecundario(_btnDeshacer);
         EstiloUi.AplicarBotonSecundario(_btnRehacer);
         EstiloUi.AplicarBotonSecundario(_btnQuitar);
+        EstiloUi.AplicarBotonSecundario(_btnClonar);
+        EstiloUi.AplicarBotonSecundario(_btnUsarPlantilla);
 
         _btnDeshacer.Click += (_, _) => Deshacer();
         _btnRehacer.Click += (_, _) => Rehacer();
         _btnQuitar.Click += (_, _) => QuitarLinea();
+        _btnClonar.Click += (_, _) => CrearPlantilla();
+        _btnUsarPlantilla.Click += (_, _) => UsarPlantilla();
 
         flujoAcciones.Controls.Add(_btnDeshacer);
         flujoAcciones.Controls.Add(_btnRehacer);
         flujoAcciones.Controls.Add(_btnQuitar);
+        flujoAcciones.Controls.Add(_btnClonar);
+        flujoAcciones.Controls.Add(_btnUsarPlantilla);
         barraAcciones.Controls.Add(flujoAcciones);
 
         tarjetaLineas.Controls.Add(_grilla);
@@ -347,6 +356,51 @@ public sealed class PanelCarrito : UserControl
             _lblMensaje.Text = "Cambio rehecho.";
         }
         catch (Exception ex)
+        {
+            MostrarError(ex.Message);
+        }
+    }
+
+    private void CrearPlantilla()
+    {
+        if (_pedido is null)
+        {
+            MostrarError("Agrega al menos una línea antes de crear una plantilla.");
+            return;
+        }
+
+        try
+        {
+            _plantilla = _pedido.Clonar();
+            _btnUsarPlantilla.Enabled = true;
+            _lblMensaje.ForeColor = EstiloUi.ColorExito;
+            _lblMensaje.Text = "Plantilla clonada. El borrador original no fue modificado.";
+        }
+        catch (DomainException ex)
+        {
+            MostrarError(ex.Message);
+        }
+    }
+
+    private void UsarPlantilla()
+    {
+        if (_plantilla is null)
+        {
+            MostrarError("Primero crea una plantilla.");
+            return;
+        }
+
+        try
+        {
+            _pedido = _plantilla.Clonar();
+            _historial.Limpiar();
+            ActualizarGrilla();
+            RecalcularTotales();
+            ActualizarBotonesMemento();
+            _lblMensaje.ForeColor = EstiloUi.ColorExito;
+            _lblMensaje.Text = "Plantilla aplicada mediante una copia profunda.";
+        }
+        catch (DomainException ex)
         {
             MostrarError(ex.Message);
         }

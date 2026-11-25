@@ -64,4 +64,43 @@ public class MediatorTests
         Assert.Single(contenedor.Controls);
         Assert.Equal("Vista Pedidos", contenedor.Controls[0].Text);
     }
+
+    [Fact]
+    public async Task Mediador_ConfirmacionActualizaLasVistasOperativas()
+    {
+        var mediador = new MediadorPrincipal();
+        using var contenedor = new Panel();
+        mediador.RegistrarPanelPrincipal(contenedor);
+        mediador.RegistrarFabricaDePanel(TipoPanel.Pedidos, () => new Label { Text = "Pedidos" });
+
+        var catalogoActualizado = false;
+        var inventarioActualizado = false;
+        var pedidosActualizados = false;
+
+        mediador.RegistrarActualizacion(TipoPanel.Catalogo, () =>
+        {
+            catalogoActualizado = true;
+            return Task.CompletedTask;
+        });
+        mediador.RegistrarActualizacion(TipoPanel.Inventario, () =>
+        {
+            inventarioActualizado = true;
+            return Task.CompletedTask;
+        });
+        mediador.RegistrarActualizacion(TipoPanel.Pedidos, () =>
+        {
+            pedidosActualizados = true;
+            return Task.CompletedTask;
+        });
+
+        mediador.NotificarPedidoConfirmado(Guid.NewGuid());
+        await mediador.ActualizarPanelesAsync(
+            TipoPanel.Catalogo,
+            TipoPanel.Inventario,
+            TipoPanel.Pedidos);
+
+        Assert.True(catalogoActualizado);
+        Assert.True(inventarioActualizado);
+        Assert.True(pedidosActualizados);
+    }
 }

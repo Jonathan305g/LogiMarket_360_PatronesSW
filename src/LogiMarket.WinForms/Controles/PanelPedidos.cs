@@ -6,6 +6,7 @@ using LogiMarket.Domain.Entities;
 using LogiMarket.Domain.Enums;
 using LogiMarket.WinForms.Sesion;
 using System.Text;
+using LogiMarket.WinForms.Mediador;
 
 namespace LogiMarket.WinForms.Controles;
 
@@ -15,6 +16,7 @@ public sealed class PanelPedidos : UserControl
     private readonly ICancelacionPedido _cancelacion;
     private readonly InvocadorComandos _invocador;
     private readonly UsuarioActualEnSesion _sesion;
+    private readonly IMediadorPrincipal _mediador;
 
     private readonly TextBox _txtFiltro = new() { Width = 320, Font = EstiloUi.FuenteNormal };
     private readonly Button _btnFiltrar = new() { Text = "Filtrar (Interpreter)", Width = 150 };
@@ -45,17 +47,20 @@ public sealed class PanelPedidos : UserControl
         IPedidoRepository pedidos,
         ICancelacionPedido cancelacion,
         InvocadorComandos invocador,
-        UsuarioActualEnSesion sesion)
+        UsuarioActualEnSesion sesion,
+        IMediadorPrincipal mediador)
     {
         _pedidos = pedidos;
         _cancelacion = cancelacion;
         _invocador = invocador;
         _sesion = sesion;
+        _mediador = mediador;
 
         Dock = DockStyle.Fill;
         BackColor = Color.White;
 
         ConstruirInterfaz();
+        _mediador.RegistrarActualizacion(TipoPanel.Pedidos, CargarAsync);
         Load += async (_, _) => await CargarAsync();
     }
 
@@ -195,7 +200,7 @@ public sealed class PanelPedidos : UserControl
         contenedor.Controls.Add(btn);
     }
 
-    private async Task CargarAsync()
+    public async Task CargarAsync()
     {
         _todosLosPedidos = (await _pedidos.ListarResumenAsync()).ToList();
         MostrarPedidos(_todosLosPedidos);

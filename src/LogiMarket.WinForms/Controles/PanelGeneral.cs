@@ -58,6 +58,7 @@ public sealed class PanelGeneral : UserControl
         Dock = DockStyle.Fill;
         BackColor = Color.White;
         ConstruirInterfaz();
+        _mediador.RegistrarActualizacion(TipoPanel.PanelGeneral, CargarDatosAsync);
         Load += async (_, _) => await CargarDatosAsync();
     }
 

@@ -16,4 +16,7 @@ public interface IMediadorPrincipal
     void RegistrarFabricaDePanel(TipoPanel panel, Func<Control> fabrica);
     void MostrarPanel(TipoPanel panel);
     void NotificarPedidoConfirmado(Guid pedidoId);
+    void RegistrarActualizacion(TipoPanel panel, Func<Task> accion);
+    void QuitarActualizacion(TipoPanel panel);
+    Task ActualizarPanelesAsync(params TipoPanel[] paneles);
 }

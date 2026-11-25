@@ -4,6 +4,7 @@ public sealed class MediadorPrincipal : IMediadorPrincipal
 {
     private Control? _contenedor;
     private readonly Dictionary<TipoPanel, Func<Control>> _fabricasDePanel = new();
+    private readonly Dictionary<TipoPanel, Func<Task>> _actualizaciones = new();
 
     public event Action<TipoPanel>? PanelCambiado;
     public event Action<Guid>? PedidoConfirmado;
@@ -41,6 +42,32 @@ public sealed class MediadorPrincipal : IMediadorPrincipal
     public void NotificarPedidoConfirmado(Guid pedidoId)
     {
         PedidoConfirmado?.Invoke(pedidoId);
+        _ = ActualizarPanelesAsync(
+            TipoPanel.PanelGeneral,
+            TipoPanel.Catalogo,
+            TipoPanel.Pedidos,
+            TipoPanel.Inventario);
         MostrarPanel(TipoPanel.Pedidos);
+    }
+
+    public void RegistrarActualizacion(TipoPanel panel, Func<Task> accion)
+    {
+        ArgumentNullException.ThrowIfNull(accion);
+        _actualizaciones[panel] = accion;
+    }
+
+    public void QuitarActualizacion(TipoPanel panel) =>
+        _actualizaciones.Remove(panel);
+
+    public async Task ActualizarPanelesAsync(params TipoPanel[] paneles)
+    {
+        foreach (var panel in paneles)
+        {
+            if (_actualizaciones.TryGetValue(panel, out var accion))
+            {
+                try { await accion(); }
+                catch { /* El panel informa su propio estado; el mediador continúa con los demás. */ }
+            }
+        }
     }
 }

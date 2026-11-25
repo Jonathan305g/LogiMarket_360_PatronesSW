@@ -3,6 +3,7 @@ using LogiMarket.Application.UseCases.Inventario;
 using LogiMarket.Domain.Enums;
 using LogiMarket.WinForms.Sesion;
 using LogiMarket.Application.Security;
+using LogiMarket.WinForms.Mediador;
 
 namespace LogiMarket.WinForms.Controles;
 
@@ -12,6 +13,7 @@ public sealed class PanelInventario : UserControl
     private readonly ICatalogoRepository _catalogo;
     private readonly IMovimientoInventarioRepository _movimientos;
     private readonly IAjustarInventarioCasoUso _ajustarInventario;
+    private readonly IMediadorPrincipal _mediador;
 
     private readonly DataGridView _grillaStock = new() { Dock = DockStyle.Fill };
     private readonly DataGridView _grillaMovimientos = new() { Dock = DockStyle.Fill };
@@ -25,11 +27,13 @@ public sealed class PanelInventario : UserControl
         ICatalogoRepository catalogo,
         IMovimientoInventarioRepository movimientos,
         IAjustarInventarioCasoUso ajustarInventario,
-        UsuarioActualEnSesion sesion)
+        UsuarioActualEnSesion sesion,
+        IMediadorPrincipal mediador)
     {
         _catalogo = catalogo;
         _movimientos = movimientos;
         _ajustarInventario = ajustarInventario;
+        _mediador = mediador;
         var puedeAjustar = PoliticaDeAcceso.PuedeAjustarInventario(sesion.Rol);
         _btnRegistrar.Enabled = puedeAjustar;
         _cmbSku.Enabled = puedeAjustar;
@@ -39,6 +43,7 @@ public sealed class PanelInventario : UserControl
         BackColor = Color.White;
 
         ConstruirInterfaz();
+        _mediador.RegistrarActualizacion(TipoPanel.Inventario, CargarAsync);
         Load += async (_, _) => await CargarAsync();
     }
 
@@ -184,7 +189,7 @@ public sealed class PanelInventario : UserControl
         Controls.Add(encabezado);
     }
 
-    private async Task CargarAsync()
+    public async Task CargarAsync()
     {
         _grillaStock.Rows.Clear();
         _cmbSku.Items.Clear();
