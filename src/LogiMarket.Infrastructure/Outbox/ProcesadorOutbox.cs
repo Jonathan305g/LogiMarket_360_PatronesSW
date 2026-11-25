@@ -1,11 +1,12 @@
 using System.Text.Json;
 using LogiMarket.Domain.Events;
+using LogiMarket.Application.Abstractions.Services;
 using LogiMarket.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
 namespace LogiMarket.Infrastructure.Outbox;
 
-public sealed class ProcesadorOutbox
+public sealed class ProcesadorOutbox : IProcesadorOutbox
 {
     private static readonly IReadOnlyDictionary<string, Type> TiposEventos = typeof(IEventoDominio).Assembly
         .GetTypes()
@@ -14,6 +15,7 @@ public sealed class ProcesadorOutbox
 
     private readonly LogiMarketDbContext _db;
     private readonly Func<IEventoDominio, CancellationToken, Task> _publicar;
+    private int _fallarSiguientePublicacion;
 
     public ProcesadorOutbox(LogiMarketDbContext db, Func<IEventoDominio, CancellationToken, Task> publicar)
     {
@@ -31,6 +33,11 @@ public sealed class ProcesadorOutbox
     {
     }
 
+    public async Task<int> ContarPendientesAsync(CancellationToken ct = default) =>
+        await _db.EventosOutbox.CountAsync(e => e.ProcesadoUtc == null, ct);
+
+    public void FallarSiguientePublicacion() => Interlocked.Exchange(ref _fallarSiguientePublicacion, 1);
+
     public async Task ProcesarPendientesAsync(CancellationToken ct = default)
     {
         var pendientes = await _db.EventosOutbox
@@ -45,6 +52,9 @@ public sealed class ProcesadorOutbox
 
             var evento = JsonSerializer.Deserialize(registro.DatosJson, tipo) as IEventoDominio
                 ?? throw new InvalidOperationException($"No se pudo reconstruir el evento '{registro.Tipo}' del Outbox.");
+
+            if (Interlocked.Exchange(ref _fallarSiguientePublicacion, 0) == 1)
+                throw new InvalidOperationException("Fallo de publicación Outbox inducido para la demostración.");
 
             await _publicar(evento, ct);
             registro.ProcesadoUtc = DateTime.UtcNow;

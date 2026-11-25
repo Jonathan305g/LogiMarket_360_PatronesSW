@@ -1,4 +1,5 @@
 using LogiMarket.Application.Abstractions.Gateways;
+using LogiMarket.Application.Comprobantes.Bridge;
 using LogiMarket.Application.Abstractions.Repositories;
 using LogiMarket.Application.Abstractions.Services;
 using LogiMarket.Application.Commands.Command;
@@ -11,11 +12,15 @@ using LogiMarket.Application.UseCases.Acceso;
 using LogiMarket.Application.UseCases.Devoluciones;
 using LogiMarket.Application.UseCases.Despacho;
 using LogiMarket.Application.UseCases.Pedidos;
+using LogiMarket.Application.UseCases.Catalogo;
+using LogiMarket.Application.UseCases.Clientes;
 using LogiMarket.Infrastructure.Notificaciones;
+using LogiMarket.Infrastructure.Comprobantes;
 using LogiMarket.Infrastructure.Outbox;
 using LogiMarket.Infrastructure.Payments.Adapter;
 using LogiMarket.Infrastructure.Payments.Decorator;
 using LogiMarket.Infrastructure.Payments.Legacy;
+using LogiMarket.Infrastructure.Payments;
 using LogiMarket.Infrastructure.Persistence;
 using LogiMarket.Infrastructure.Persistence.Auditoria;
 using LogiMarket.Infrastructure.Persistence.Repositories;
@@ -50,9 +55,14 @@ internal static class Program
     private static ServiceProvider ConfigurarServicios()
     {
         var servicios = new ServiceCollection();
-        var rutaBd = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "LogiMarket360", "logimarket.db");
+        var rutaBd = Environment.GetEnvironmentVariable("LOGIMARKET_DB_PATH");
+        if (string.IsNullOrWhiteSpace(rutaBd))
+        {
+            rutaBd = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "LogiMarket360", "logimarket.db");
+        }
+        rutaBd = Path.GetFullPath(rutaBd);
         Directory.CreateDirectory(Path.GetDirectoryName(rutaBd)!);
         servicios.AddDbContext<LogiMarketDbContext>(opciones => opciones.UseSqlite($"Data Source={rutaBd}"));
 
@@ -65,6 +75,7 @@ internal static class Program
         servicios.AddScoped<IDevolucionRepository, DevolucionRepositorioEf>();
         servicios.AddScoped<IUsuarioRepository, UsuarioRepositorioEf>();
         servicios.AddScoped<ICatalogoRepository, CatalogoRepositorioEf>();
+        servicios.AddScoped<IAdministracionCatalogoRepository, AdministracionCatalogoRepositorioEf>();
         servicios.AddScoped<IOutbox, OutboxEf>();
         servicios.AddScoped<IUnitOfWork, UnitOfWorkEf>();
 
@@ -74,7 +85,11 @@ internal static class Program
         servicios.AddScoped<IUsuarioActual>(sp => sp.GetRequiredService<UsuarioActualEnSesion>());
         servicios.AddSingleton<IHasherContrasena, HasherContrasenaPbkdf2>();
         servicios.AddScoped<IInicioSesionCasoUso, InicioSesionCasoUso>();
+        servicios.AddScoped<IGestionCatalogo, GestionCatalogoCasoUso>();
+        servicios.AddScoped<IGestionClientes, GestionClientesCasoUso>();
+        servicios.AddScoped<IFabricaSalidaArchivo, FabricaSalidaArchivo>();
         servicios.AddTransient<PanelAcceso>();
+        servicios.AddTransient<PanelGeneral>();
         servicios.AddTransient<PanelCatalogo>();
         servicios.AddTransient<PanelClientes>();
         servicios.AddTransient<PanelCarrito>();
@@ -92,12 +107,20 @@ internal static class Program
 
         servicios.AddSingleton<MetricasSesion>();
         servicios.AddScoped<PasarelaLegadaSimulada>();
+        servicios.AddScoped<IPasarelaPagoDemo>(sp => sp.GetRequiredService<PasarelaLegadaSimulada>());
+        servicios.AddScoped<PasarelaModernaSimulada>();
+        servicios.AddScoped(sp => new SelectorPasarelaPago(
+            new AuditoriaPagoDecorator(
+                new AdaptadorPasarelaLegada(sp.GetRequiredService<PasarelaLegadaSimulada>()),
+                sp.GetRequiredService<IBitacoraAuditoria>()),
+            new AuditoriaPagoDecorator(
+                sp.GetRequiredService<PasarelaModernaSimulada>(),
+                sp.GetRequiredService<IBitacoraAuditoria>())));
+        servicios.AddScoped<ISelectorPasarelaPago>(sp => sp.GetRequiredService<SelectorPasarelaPago>());
         servicios.AddScoped<IPasarelaPago>(sp =>
         {
-            var adapter = new AdaptadorPasarelaLegada(sp.GetRequiredService<PasarelaLegadaSimulada>());
-            var decorator = new AuditoriaPagoDecorator(adapter, sp.GetRequiredService<IBitacoraAuditoria>());
             return new PagoAutorizadoProxy(
-                decorator,
+                sp.GetRequiredService<SelectorPasarelaPago>(),
                 sp.GetRequiredService<IUsuarioActual>(),
                 sp.GetRequiredService<IAuditoriaSeguridad>());
         });
@@ -115,6 +138,7 @@ internal static class Program
         servicios.AddScoped(sp => new ProcesadorOutbox(
             sp.GetRequiredService<LogiMarketDbContext>(),
             (evento, ct) => sp.GetRequiredService<PublicadorEventos>().PublicarAsync(evento, ct)));
+        servicios.AddScoped<IProcesadorOutbox>(sp => sp.GetRequiredService<ProcesadorOutbox>());
 
         servicios.AddScoped<IConfirmacionPedido, ConfirmacionPedidoFacade>();
         servicios.AddScoped<ICancelacionPedido, CancelarPedidoCasoUso>();

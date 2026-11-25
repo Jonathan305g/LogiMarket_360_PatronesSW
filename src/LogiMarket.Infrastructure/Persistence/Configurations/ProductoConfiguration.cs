@@ -16,6 +16,7 @@ public class ProductoConfiguration : IEntityTypeConfiguration<Producto>
         builder.Property(p => p.Nombre).IsRequired().HasMaxLength(120);
         builder.Property(p => p.Precio).HasConversion(new DineroConverter()).HasColumnType("decimal(18,2)").IsRequired();
         builder.Property(p => p.PesoKg).HasColumnType("decimal(10,3)");
-        builder.Property(p => p.Stock).IsRequired();
+        // SQLite incluye el valor original en el UPDATE; evita que dos cobros vendan la última unidad.
+        builder.Property(p => p.Stock).IsRequired().IsConcurrencyToken();
     }
 }

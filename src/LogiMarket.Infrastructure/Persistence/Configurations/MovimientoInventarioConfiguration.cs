@@ -10,6 +10,9 @@ public class MovimientoInventarioConfiguration : IEntityTypeConfiguration<Movimi
     {
         builder.ToTable("MovimientosInventario");
         builder.HasKey(m => m.Id);
+        builder.HasOne<Producto>().WithMany().HasPrincipalKey(p => p.Sku)
+            .HasForeignKey(m => m.Sku).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<Pedido>().WithMany().HasForeignKey(m => m.Referencia).OnDelete(DeleteBehavior.Restrict);
         builder.Property(m => m.Sku).IsRequired().HasMaxLength(20);
         builder.HasIndex(m => m.Sku);
         builder.Property(m => m.Cantidad).IsRequired();

@@ -10,6 +10,7 @@ public class DespachoConfiguration : IEntityTypeConfiguration<Despacho>
     {
         builder.ToTable("Despachos");
         builder.HasKey(d => d.Id);
+        builder.HasOne<Pedido>().WithMany().HasForeignKey(d => d.PedidoId).OnDelete(DeleteBehavior.Restrict);
         builder.Property(d => d.PedidoId).IsRequired();
         builder.HasIndex(d => d.PedidoId).IsUnique();
         builder.Property(d => d.Guia).IsRequired().HasMaxLength(200);

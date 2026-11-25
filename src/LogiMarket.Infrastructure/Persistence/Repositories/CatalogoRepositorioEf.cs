@@ -11,10 +11,10 @@ public sealed class CatalogoRepositorioEf(LogiMarketDbContext db) : ICatalogoRep
     public async Task<IReadOnlyList<ResumenElementoCatalogo>> ListarResumenAsync(CancellationToken ct = default)
     {
         var productos = await db.Productos.AsNoTracking()
-            .Select(p => new ResumenElementoCatalogo(p.Sku, p.Nombre, false, p.Stock))
+            .Select(p => new ResumenElementoCatalogo(p.Sku, p.Nombre, false, p.Stock, p.Precio.Valor))
             .ToListAsync(ct);
         var kits = await db.Kits.AsNoTracking()
-            .Select(k => new ResumenElementoCatalogo(k.Sku, k.Nombre, true, null))
+            .Select(k => new ResumenElementoCatalogo(k.Sku, k.Nombre, true, null, null))
             .ToListAsync(ct);
 
         return productos.Concat(kits).OrderBy(r => r.Sku).ToArray();

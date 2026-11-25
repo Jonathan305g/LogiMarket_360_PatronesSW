@@ -3,8 +3,10 @@ using LogiMarket.Domain.Catalog.Composite;
 using LogiMarket.Domain.Entities;
 using LogiMarket.Domain.Enums;
 using LogiMarket.Domain.Orders.Builder;
+using LogiMarket.Domain.Returns.TemplateMethod;
 using LogiMarket.Domain.ValueObjects;
 using LogiMarket.Infrastructure.Comprobantes;
+using LogiMarket.Tests.Fakes;
 using static LogiMarket.Tests.Fakes.CatalogoDePrueba;
 
 namespace LogiMarket.Tests.Patterns.Structural;
@@ -45,6 +47,23 @@ public class BridgeTests : IDisposable
 
         Assert.True(File.Exists(ruta));
         Assert.Contains("Comprobante de venta", File.ReadAllText(ruta));
+    }
+
+    [Fact]
+    public void ComprobanteDevolucion_ConVistaPreviaYArchivoTXT_EntregaLasDosSalidas()
+    {
+        var pedido = PedidosDePrueba.EntregadoDeAna();
+        var solicitud = new SolicitudDevolucion(pedido, pedido.FechaEntregaUtc!.Value.AddDays(2), true);
+        var resultado = new DevolucionPorDefecto().Ejecutar(solicitud);
+        Assert.True(resultado.Aceptada);
+
+        var preview = new ComprobanteDevolucion(resultado.Devolucion!, new VistaPrevia()).Generar();
+        var ruta = new ComprobanteDevolucion(resultado.Devolucion!, new ArchivoTXT(_carpeta)).Generar();
+
+        Assert.Contains("Comprobante de devolucion", preview);
+        Assert.Contains("Reembolso", preview);
+        Assert.True(File.Exists(ruta));
+        Assert.Contains("Comprobante de devolucion", File.ReadAllText(ruta));
     }
 
     [Fact]

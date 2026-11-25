@@ -5,4 +5,5 @@ namespace LogiMarket.Application.Abstractions.Repositories;
 public interface IDespachoRepository
 {
     void Agregar(Despacho despacho);
+    Task<IReadOnlyList<Despacho>> ListarAsync(CancellationToken ct = default);
 }

@@ -33,6 +33,15 @@ public class PedidoBuilder
         return this;
     }
 
+    // Crea un borrador inicial sin líneas para edición interactiva.
+    public Pedido ConstruirVacio()
+    {
+        if (_clienteId == Guid.Empty)
+            throw new DomainException("El pedido requiere un cliente.");
+
+        return new Pedido(_clienteId, _entrega);
+    }
+
     // El único punto donde nace el pedido: o sale completo y válido, o lanza error.
     public Pedido Construir()
     {

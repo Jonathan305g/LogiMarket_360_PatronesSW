@@ -11,6 +11,7 @@ public class PagoConfiguration : IEntityTypeConfiguration<Pago>
     {
         builder.ToTable("Pagos");
         builder.HasKey(p => p.Id);
+        builder.HasOne<Pedido>().WithMany().HasForeignKey(p => p.PedidoId).OnDelete(DeleteBehavior.Restrict);
         builder.Property(p => p.PedidoId).IsRequired();
         builder.Property(p => p.Monto).HasConversion(new DineroConverter()).HasColumnType("decimal(18,2)").IsRequired();
         builder.Property(p => p.Referencia).IsRequired().HasMaxLength(60);

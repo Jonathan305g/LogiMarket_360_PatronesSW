@@ -1,4 +1,4 @@
-﻿using LogiMarket.Domain.Catalog.Composite;
+using LogiMarket.Domain.Catalog.Composite;
 using LogiMarket.Domain.Enums;
 using LogiMarket.Domain.Exceptions;
 using LogiMarket.Domain.Orders.Prototype;
@@ -101,6 +101,16 @@ public class Pedido : IPrototipo<Pedido>
             ?? throw new DomainException($"El pedido no tiene una línea con SKU '{sku}'.");
 
         linea.CambiarCantidad(cantidad);
+    }
+
+    public void QuitarLinea(string sku)
+    {
+        AsegurarBorrador();
+
+        var linea = BuscarLinea(sku)
+            ?? throw new DomainException($"El pedido no tiene una línea con SKU '{sku}'.");
+
+        _detalles.Remove(linea);
     }
 
     public void CambiarEntrega(TipoEntrega entrega)

@@ -8,6 +8,9 @@ public enum TipoPanel
 
 public interface IMediadorPrincipal
 {
+    event Action<TipoPanel>? PanelCambiado;
+    event Action<Guid>? PedidoConfirmado;
+
     void RegistrarPanelPrincipal(Control contenedor);
     void RegistrarFabricaDePanel(TipoPanel panel, Func<Control> fabrica);
     void MostrarPanel(TipoPanel panel);

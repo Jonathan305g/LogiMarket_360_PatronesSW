@@ -20,6 +20,8 @@ public sealed class UsuarioActualEnSesion : IUsuarioActual
         Rol = usuario.Rol;
     }
 
+    public void ActualizarRol(RolUsuario rol) => Rol = rol;
+
     public void CerrarSesion()
     {
         UsuarioId = null;

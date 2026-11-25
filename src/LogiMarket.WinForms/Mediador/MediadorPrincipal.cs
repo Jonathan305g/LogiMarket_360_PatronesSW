@@ -5,6 +5,9 @@ public sealed class MediadorPrincipal : IMediadorPrincipal
     private Control? _contenedor;
     private readonly Dictionary<TipoPanel, Func<Control>> _fabricasDePanel = new();
 
+    public event Action<TipoPanel>? PanelCambiado;
+    public event Action<Guid>? PedidoConfirmado;
+
     public void RegistrarPanelPrincipal(Control contenedor) =>
         _contenedor = contenedor ?? throw new ArgumentNullException(nameof(contenedor));
 
@@ -28,7 +31,13 @@ public sealed class MediadorPrincipal : IMediadorPrincipal
         var nuevo = fabrica();
         nuevo.Dock = DockStyle.Fill;
         _contenedor.Controls.Add(nuevo);
+
+        PanelCambiado?.Invoke(panel);
     }
 
-    public void NotificarPedidoConfirmado(Guid pedidoId) => MostrarPanel(TipoPanel.Pedidos);
+    public void NotificarPedidoConfirmado(Guid pedidoId)
+    {
+        PedidoConfirmado?.Invoke(pedidoId);
+        MostrarPanel(TipoPanel.Pedidos);
+    }
 }

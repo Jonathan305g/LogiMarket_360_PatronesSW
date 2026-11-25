@@ -2,7 +2,7 @@ using LogiMarket.Domain.Catalog.Composite;
 
 namespace LogiMarket.Application.Abstractions.Repositories;
 
-public sealed record ResumenElementoCatalogo(string Sku, string Nombre, bool EsKit, int? Stock);
+public sealed record ResumenElementoCatalogo(string Sku, string Nombre, bool EsKit, int? Stock, decimal? Precio = null);
 
 // Resuelve productos o kits persistidos como elementos del Composite de catálogo.
 public interface ICatalogoRepository

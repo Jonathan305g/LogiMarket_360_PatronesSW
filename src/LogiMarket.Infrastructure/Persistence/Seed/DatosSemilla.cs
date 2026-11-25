@@ -14,6 +14,7 @@ public static class DatosSemilla
         await SembrarProductosAsync(db, ct);
         await SembrarKitsAsync(db, ct);
         await SembrarUsuariosAsync(db, ct);
+        await SembrarClientesAsync(db, ct);
         await db.SaveChangesAsync(ct);
     }
 
@@ -46,8 +47,8 @@ public static class DatosSemilla
                 Nombre = "Kit Oficina",
                 Componentes =
                 {
-                    new KitComponenteRegistro { ComponenteSku = "P01", EsKit = false, Cantidad = 1 },
-                    new KitComponenteRegistro { ComponenteSku = "P02", EsKit = false, Cantidad = 1 },
+                    new KitComponenteRegistro { ComponenteSku = "P01", ProductoSku = "P01", EsKit = false, Cantidad = 1 },
+                    new KitComponenteRegistro { ComponenteSku = "P02", ProductoSku = "P02", EsKit = false, Cantidad = 1 },
                 }
             });
         }
@@ -60,8 +61,8 @@ public static class DatosSemilla
                 Nombre = "Kit Teletrabajo",
                 Componentes =
                 {
-                    new KitComponenteRegistro { ComponenteSku = "KIT_OFICINA", EsKit = true, Cantidad = 1 },
-                    new KitComponenteRegistro { ComponenteSku = "P03", EsKit = false, Cantidad = 1 },
+                    new KitComponenteRegistro { ComponenteSku = "KIT_OFICINA", KitReferenciaSku = "KIT_OFICINA", EsKit = true, Cantidad = 1 },
+                    new KitComponenteRegistro { ComponenteSku = "P03", ProductoSku = "P03", EsKit = false, Cantidad = 1 },
                 }
             });
         }
@@ -85,6 +86,23 @@ public static class DatosSemilla
                 db.Usuarios.Add(new Usuario(nombre, hasher.Hashear(contrasena), rol));
             else if (existente.HashContrasena == HashLegadoSinSal(nombre))
                 existente.ActualizarHashContrasena(hasher.Hashear(contrasena));
+        }
+    }
+
+    private static async Task SembrarClientesAsync(LogiMarketDbContext db, CancellationToken ct)
+    {
+        var clientes = new (string Nombre, CategoriaCliente Categoria)[]
+        {
+            ("Ana López", CategoriaCliente.Vip),
+            ("Luis Ruiz", CategoriaCliente.Normal),
+            ("Carmen Pérez", CategoriaCliente.Normal),
+            ("Sofía Díaz", CategoriaCliente.Normal)
+        };
+
+        foreach (var (nombre, categoria) in clientes)
+        {
+            if (!await db.Clientes.AnyAsync(c => c.Nombre == nombre, ct))
+                db.Clientes.Add(new Cliente(nombre, categoria));
         }
     }
 

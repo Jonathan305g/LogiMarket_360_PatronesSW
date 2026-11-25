@@ -9,11 +9,11 @@ namespace LogiMarket.Domain.Catalog.Composite;
 public class KitCompuesto : IElementoCatalogo
 {
     // Un componente del kit con su cantidad (ej.: 2 mouse dentro del kit).
-    internal record ItemKit(IElementoCatalogo Elemento, int Cantidad);
+    public record ItemKit(IElementoCatalogo Elemento, int Cantidad);
     
     private readonly List<ItemKit> _items = new();
 
-    internal IReadOnlyList<ItemKit> Items => _items;
+    public IReadOnlyList<ItemKit> Items => _items;
 
     public string Sku { get; }
     public string Nombre { get; }
@@ -25,7 +25,7 @@ public class KitCompuesto : IElementoCatalogo
         if (string.IsNullOrWhiteSpace(nombre))
             throw new DomainException("El nombre del kit es obligatorio.");
 
-        Sku = sku.Trim();
+        Sku = sku.Trim().ToUpperInvariant();
         Nombre = nombre.Trim();
     }
 

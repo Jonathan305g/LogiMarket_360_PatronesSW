@@ -16,6 +16,13 @@ public class PlanificadorEntrega
         _fabricas = fabricas.ToDictionary(f => f.Tipo);
     }
 
+    public static IFabricaEntrega ObtenerFabrica(TipoEntrega entrega) => entrega switch
+    {
+        TipoEntrega.Estandar => new FabricaEntregaEstandar(),
+        TipoEntrega.Expres => new FabricaEntregaExpres(),
+        _ => throw new DomainException($"No hay fábrica para '{entrega}'.")
+    };
+
     public PlanEntrega Planificar(Pedido pedido, DateTime desdeUtc)
     {
         ArgumentNullException.ThrowIfNull(pedido);

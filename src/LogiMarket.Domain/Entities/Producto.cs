@@ -38,7 +38,7 @@ public class Producto
             throw new DomainException("El stock no puede ser negativo.");
 
         Id = Guid.NewGuid();
-        Sku = sku.Trim();
+        Sku = sku.Trim().ToUpperInvariant();
         Nombre = nombre.Trim();
         Precio = precio;
         PesoKg = pesoKg;
@@ -72,5 +72,19 @@ public class Producto
             throw new DomainException("El precio debe ser mayor que cero.");
 
         Precio = nuevoPrecio;
+    }
+
+    public void ActualizarDatos(string nombre, Dinero precio, decimal pesoKg)
+    {
+        if (string.IsNullOrWhiteSpace(nombre))
+            throw new DomainException("El nombre es obligatorio.");
+        if (precio.Valor <= 0)
+            throw new DomainException("El precio debe ser mayor que cero.");
+        if (pesoKg < 0)
+            throw new DomainException("El peso no puede ser negativo.");
+
+        Nombre = nombre.Trim();
+        Precio = precio;
+        PesoKg = pesoKg;
     }
 }

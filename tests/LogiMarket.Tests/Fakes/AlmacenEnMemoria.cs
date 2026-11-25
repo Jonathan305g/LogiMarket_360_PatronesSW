@@ -124,4 +124,10 @@ public sealed class AlmacenEnMemoria : IClienteRepository, IPedidoRepository, IP
 
     Task<IReadOnlyList<MovimientoInventario>> IMovimientoInventarioRepository.ListarAsync() =>
         Task.FromResult<IReadOnlyList<MovimientoInventario>>(Movimientos.ToList());
+
+    Task<IReadOnlyList<Despacho>> IDespachoRepository.ListarAsync(CancellationToken ct) =>
+        Task.FromResult<IReadOnlyList<Despacho>>(Despachos.ToList());
+
+    Task<IReadOnlyList<Devolucion>> IDevolucionRepository.ListarAsync(CancellationToken ct) =>
+        Task.FromResult<IReadOnlyList<Devolucion>>(Devoluciones.ToList());
 }

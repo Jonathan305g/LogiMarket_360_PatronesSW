@@ -28,5 +28,9 @@ public class KitComponenteRegistroConfiguration : IEntityTypeConfiguration<KitCo
         builder.HasKey(c => c.Id);
         builder.Property(c => c.ComponenteSku).IsRequired().HasMaxLength(20);
         builder.Property(c => c.Cantidad).IsRequired();
+        builder.HasOne<LogiMarket.Domain.Entities.Producto>()
+            .WithMany().HasPrincipalKey(p => p.Sku).HasForeignKey(c => c.ProductoSku).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<KitRegistro>()
+            .WithMany().HasForeignKey(c => c.KitReferenciaSku).OnDelete(DeleteBehavior.Restrict);
     }
 }

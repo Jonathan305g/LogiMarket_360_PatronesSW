@@ -72,14 +72,16 @@ public class PersistenciaTests : IDisposable
     [Fact]
     public async Task ProductoConSkuDuplicado_LoRechazaElIndiceUnico()
     {
-        await using var db = CrearContexto();
-        await db.Database.MigrateAsync();
-        db.Productos.Add(new Producto("P01", "Mouse", new Dinero(20m), 0.2m, 8));
-        await db.SaveChangesAsync();
+        await using (var db = CrearContexto())
+        {
+            await db.Database.MigrateAsync();
+            db.Productos.Add(new Producto("P01", "Mouse", new Dinero(20m), 0.2m, 8));
+            await db.SaveChangesAsync();
+        }
 
-        db.Productos.Add(new Producto("P01", "Otro Mouse", new Dinero(99m), 0.2m, 1));
-
-        await Assert.ThrowsAsync<DbUpdateException>(() => db.SaveChangesAsync());
+        await using var dbDuplicados = CrearContexto();
+        dbDuplicados.Productos.Add(new Producto("P01", "Otro Mouse", new Dinero(99m), 0.2m, 1));
+        await Assert.ThrowsAsync<DbUpdateException>(() => dbDuplicados.SaveChangesAsync());
     }
 
     [Fact]
@@ -87,8 +89,11 @@ public class PersistenciaTests : IDisposable
     {
         await using var db = CrearContexto();
         await db.Database.MigrateAsync();
-        var pedido1 = new PedidoBuilder().ConCliente(new Cliente("Ana", CategoriaCliente.Vip)).AgregarLinea(P01(), 1).Construir();
-        var pedido2 = new PedidoBuilder().ConCliente(new Cliente("Luis", CategoriaCliente.Normal)).AgregarLinea(P02(), 1).Construir();
+        var ana = new Cliente("Ana", CategoriaCliente.Vip);
+        var luis = new Cliente("Luis", CategoriaCliente.Normal);
+        var pedido1 = new PedidoBuilder().ConCliente(ana).AgregarLinea(P01(), 1).Construir();
+        var pedido2 = new PedidoBuilder().ConCliente(luis).AgregarLinea(P02(), 1).Construir();
+        db.Clientes.AddRange(ana, luis);
         db.Pedidos.AddRange(pedido1, pedido2);
         db.Pagos.Add(new Pago(pedido1.Id, new Dinero(20m), "REF-1", "CLAVE-X", DateTime.UtcNow));
         await db.SaveChangesAsync();

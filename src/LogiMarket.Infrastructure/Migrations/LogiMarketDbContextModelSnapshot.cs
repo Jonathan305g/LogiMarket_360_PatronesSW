@@ -121,6 +121,8 @@ namespace LogiMarket.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Referencia");
+
                     b.HasIndex("Sku");
 
                     b.ToTable("MovimientosInventario", (string)null);
@@ -196,6 +198,8 @@ namespace LogiMarket.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ClienteId");
+
                     b.ToTable("Pedidos", (string)null);
                 });
 
@@ -222,6 +226,7 @@ namespace LogiMarket.Infrastructure.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<int>("Stock")
+                        .IsConcurrencyToken()
                         .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
@@ -360,13 +365,23 @@ namespace LogiMarket.Infrastructure.Migrations
                     b.Property<bool>("EsKit")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("KitReferenciaSku")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("KitSku")
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("ProductoSku")
+                        .HasColumnType("TEXT");
+
                     b.HasKey("Id");
 
+                    b.HasIndex("KitReferenciaSku");
+
                     b.HasIndex("KitSku");
+
+                    b.HasIndex("ProductoSku");
 
                     b.ToTable("KitComponentes", (string)null);
                 });
@@ -387,8 +402,23 @@ namespace LogiMarket.Infrastructure.Migrations
                     b.ToTable("Kits", (string)null);
                 });
 
+            modelBuilder.Entity("LogiMarket.Domain.Entities.Despacho", b =>
+                {
+                    b.HasOne("LogiMarket.Domain.Entities.Pedido", null)
+                        .WithMany()
+                        .HasForeignKey("PedidoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("LogiMarket.Domain.Entities.Devolucion", b =>
                 {
+                    b.HasOne("LogiMarket.Domain.Entities.Pedido", null)
+                        .WithMany()
+                        .HasForeignKey("PedidoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.OwnsMany("LogiMarket.Domain.Catalog.Composite.ComponenteFisico", "Reintegros", b1 =>
                         {
                             b1.Property<Guid>("DevolucionId")
@@ -408,17 +438,57 @@ namespace LogiMarket.Infrastructure.Migrations
 
                             b1.HasKey("DevolucionId", "Id");
 
+                            b1.HasIndex("Sku");
+
                             b1.ToTable("DevolucionReintegros", (string)null);
 
                             b1.WithOwner()
                                 .HasForeignKey("DevolucionId");
+
+                            b1.HasOne("LogiMarket.Domain.Entities.Producto", null)
+                                .WithMany()
+                                .HasForeignKey("Sku")
+                                .HasPrincipalKey("Sku")
+                                .OnDelete(DeleteBehavior.Restrict)
+                                .IsRequired();
                         });
 
                     b.Navigation("Reintegros");
                 });
 
+            modelBuilder.Entity("LogiMarket.Domain.Entities.MovimientoInventario", b =>
+                {
+                    b.HasOne("LogiMarket.Domain.Entities.Pedido", null)
+                        .WithMany()
+                        .HasForeignKey("Referencia")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("LogiMarket.Domain.Entities.Producto", null)
+                        .WithMany()
+                        .HasForeignKey("Sku")
+                        .HasPrincipalKey("Sku")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("LogiMarket.Domain.Entities.Pago", b =>
+                {
+                    b.HasOne("LogiMarket.Domain.Entities.Pedido", null)
+                        .WithMany()
+                        .HasForeignKey("PedidoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("LogiMarket.Domain.Entities.Pedido", b =>
                 {
+                    b.HasOne("LogiMarket.Domain.Entities.Cliente", null)
+                        .WithMany()
+                        .HasForeignKey("ClienteId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.OwnsMany("LogiMarket.Domain.Entities.PedidoDetalle", "Detalles", b1 =>
                         {
                             b1.Property<Guid>("Id")
@@ -519,10 +589,21 @@ namespace LogiMarket.Infrastructure.Migrations
             modelBuilder.Entity("LogiMarket.Infrastructure.Persistence.Models.KitComponenteRegistro", b =>
                 {
                     b.HasOne("LogiMarket.Infrastructure.Persistence.Models.KitRegistro", null)
+                        .WithMany()
+                        .HasForeignKey("KitReferenciaSku")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("LogiMarket.Infrastructure.Persistence.Models.KitRegistro", null)
                         .WithMany("Componentes")
                         .HasForeignKey("KitSku")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.HasOne("LogiMarket.Domain.Entities.Producto", null)
+                        .WithMany()
+                        .HasForeignKey("ProductoSku")
+                        .HasPrincipalKey("Sku")
+                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("LogiMarket.Infrastructure.Persistence.Models.KitRegistro", b =>

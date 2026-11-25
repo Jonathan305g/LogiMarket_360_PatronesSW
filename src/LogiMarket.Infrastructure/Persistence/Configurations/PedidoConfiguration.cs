@@ -12,6 +12,7 @@ public class PedidoConfiguration : IEntityTypeConfiguration<Pedido>
     {
         builder.ToTable("Pedidos");
         builder.HasKey(p => p.Id);
+        builder.HasOne<Cliente>().WithMany().HasForeignKey(p => p.ClienteId).OnDelete(DeleteBehavior.Restrict);
 
         builder.Property(p => p.ClienteId).IsRequired();
         builder.Property(p => p.Entrega).HasConversion<string>().HasMaxLength(20).IsRequired();
