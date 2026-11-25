@@ -1,7 +1,10 @@
 using LogiMarket.Application.Abstractions.Repositories;
+using LogiMarket.Application.Commands.Command;
 using LogiMarket.Application.Queries.Interpreter;
+using LogiMarket.Application.UseCases.Pedidos;
 using LogiMarket.Domain.Entities;
 using LogiMarket.Domain.Enums;
+using LogiMarket.WinForms.Sesion;
 using System.Text;
 
 namespace LogiMarket.WinForms.Controles;
@@ -9,9 +12,13 @@ namespace LogiMarket.WinForms.Controles;
 public sealed class PanelPedidos : UserControl
 {
     private readonly IPedidoRepository _pedidos;
+    private readonly ICancelacionPedido _cancelacion;
+    private readonly InvocadorComandos _invocador;
+    private readonly UsuarioActualEnSesion _sesion;
 
     private readonly TextBox _txtFiltro = new() { Width = 320, Font = EstiloUi.FuenteNormal };
     private readonly Button _btnFiltrar = new() { Text = "Filtrar (Interpreter)", Width = 150 };
+    private readonly Button _btnCancelar = new() { Text = "Cancelar pedido", Width = 140, Enabled = false };
     private readonly Label _lblErrorFiltro = new() { ForeColor = EstiloUi.ColorPeligro, AutoSize = true, Font = EstiloUi.FuenteSubtitulo };
 
     private readonly DataGridView _grilla = new() { Dock = DockStyle.Fill };
@@ -25,7 +32,7 @@ public sealed class PanelPedidos : UserControl
         BackColor = Color.FromArgb(248, 250, 252)
     };
 
-    private readonly Panel _panelHistorialVisual = new() { Dock = DockStyle.Bottom, Height = 48, BackColor = Color.White };
+    private readonly Panel _panelHistorialVisual = new() { Dock = DockStyle.Bottom, Height = 44, BackColor = Color.White };
     private readonly Label _lblPasoBorrador = EstiloUi.CrearBadge("BORRADOR ●");
     private readonly Label _lblPasoValidado = EstiloUi.CrearBadge("VALIDADO ●");
     private readonly Label _lblPasoPagado = EstiloUi.CrearBadge("PAGADO ●");
@@ -34,9 +41,16 @@ public sealed class PanelPedidos : UserControl
 
     private List<ResumenPedido> _todosLosPedidos = new();
 
-    public PanelPedidos(IPedidoRepository pedidos)
+    public PanelPedidos(
+        IPedidoRepository pedidos,
+        ICancelacionPedido cancelacion,
+        InvocadorComandos invocador,
+        UsuarioActualEnSesion sesion)
     {
         _pedidos = pedidos;
+        _cancelacion = cancelacion;
+        _invocador = invocador;
+        _sesion = sesion;
 
         Dock = DockStyle.Fill;
         BackColor = Color.White;
@@ -60,6 +74,10 @@ public sealed class PanelPedidos : UserControl
         EstiloUi.AplicarBotonSecundario(_btnFiltrar);
         _btnFiltrar.Click += (_, _) => AplicarFiltro();
         flujoFiltroGramatica.Controls.Add(_btnFiltrar);
+
+        EstiloUi.AplicarBotonSecundario(_btnCancelar);
+        _btnCancelar.Click += async (_, _) => await CancelarSeleccionadoAsync();
+        flujoFiltroGramatica.Controls.Add(_btnCancelar);
 
         var btnLimpiar = new Button { Text = "Limpiar", Width = 80 };
         EstiloUi.AplicarBotonSecundario(btnLimpiar);
@@ -133,12 +151,17 @@ public sealed class PanelPedidos : UserControl
             FlowDirection = FlowDirection.LeftToRight,
             Padding = new Padding(0, 8, 0, 0)
         };
-        flujoPasos.Controls.Add(new Label { Text = "Ciclo:", Font = EstiloUi.FuenteNegrita, AutoSize = true, Margin = new Padding(0, 6, 6, 0) });
         flujoPasos.Controls.Add(_lblPasoBorrador);
         flujoPasos.Controls.Add(_lblPasoValidado);
         flujoPasos.Controls.Add(_lblPasoPagado);
         flujoPasos.Controls.Add(_lblPasoDespachado);
         flujoPasos.Controls.Add(_lblPasoEntregado);
+        foreach (var paso in new[] { _lblPasoBorrador, _lblPasoValidado, _lblPasoPagado, _lblPasoDespachado, _lblPasoEntregado })
+        {
+            paso.Font = new Font("Segoe UI", 7.5f, FontStyle.Bold);
+            paso.Padding = new Padding(2, 1, 2, 1);
+            paso.Margin = new Padding(1, 1, 1, 1);
+        }
         _panelHistorialVisual.Controls.Add(flujoPasos);
 
         tarjetaDetalle.Controls.Add(_txtDetalle);
@@ -242,6 +265,9 @@ public sealed class PanelPedidos : UserControl
         var id = (Guid)_grilla.SelectedRows[0].Cells["Id"].Value!;
         var pedido = await _pedidos.ObtenerPorIdAsync(id);
         if (pedido is null) return;
+        var puedeCancelarPorRol = _sesion.Rol is RolUsuario.Admin or RolUsuario.Ventas;
+        _btnCancelar.Enabled = puedeCancelarPorRol
+            && pedido.Estado is EstadoPedido.Borrador or EstadoPedido.Validado;
 
         var sb = new StringBuilder();
         sb.AppendLine($"PEDIDO: PED-{pedido.Id.ToString()[..8].ToUpperInvariant()}");
@@ -271,6 +297,35 @@ public sealed class PanelPedidos : UserControl
         ActualizarPasosVisuales(pedido.Estado);
     }
 
+    private async Task CancelarSeleccionadoAsync()
+    {
+        if (_grilla.SelectedRows.Count == 0) return;
+        var id = (Guid)_grilla.SelectedRows[0].Cells["Id"].Value!;
+        if (MessageBox.Show(this, "¿Confirmas cancelar este pedido?", "Cancelar pedido",
+                MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
+            return;
+
+        try
+        {
+            var resultado = await _invocador.EjecutarAsync(new CancelarPedidoCommand(_cancelacion, id));
+            if (!resultado.Exitoso)
+            {
+                _lblErrorFiltro.Text = resultado.Error?.Mensaje ?? "No se pudo cancelar el pedido.";
+                _lblErrorFiltro.ForeColor = EstiloUi.ColorPeligro;
+                return;
+            }
+
+            _lblErrorFiltro.Text = "Pedido cancelado.";
+            _lblErrorFiltro.ForeColor = EstiloUi.ColorExito;
+            await CargarAsync();
+        }
+        catch (Exception ex)
+        {
+            _lblErrorFiltro.Text = $"No se pudo cancelar: {ex.Message}";
+            _lblErrorFiltro.ForeColor = EstiloUi.ColorPeligro;
+        }
+    }
+
     private void ActualizarPasosVisuales(EstadoPedido estado)
     {
         MarcarPaso(_lblPasoBorrador, estado >= EstadoPedido.Borrador && estado != EstadoPedido.Cancelado);
@@ -297,6 +352,7 @@ public sealed class PanelPedidos : UserControl
     private void LimpiarDetalle()
     {
         _txtDetalle.Clear();
+        _btnCancelar.Enabled = false;
         ActualizarPasosVisuales(EstadoPedido.Borrador);
     }
 }

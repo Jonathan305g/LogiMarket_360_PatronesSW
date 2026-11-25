@@ -54,33 +54,39 @@ public sealed class AuditoriaYOutboxTests : IDisposable
     [Fact]
     public async Task Procesador_SiFallaUnEvento_LosAnterioresQuedanMarcadosYSeReintentaElPendiente()
     {
-        await using var db = await CrearYMigrarAsync();
         var ahora = DateTime.UtcNow;
-        var outbox = new OutboxEf(db);
-        outbox.Registrar(new PedidoPagado(Guid.NewGuid(), Guid.NewGuid(), new Dinero(25m), "REF-1", ahora));
-        outbox.Registrar(new DespachoRegistrado(Guid.NewGuid(), "GUIA-1", ahora.AddTicks(1)));
-        await new UnitOfWorkEf(db).CommitAsync();
-
         var recibidos = new List<IEventoDominio>();
-        var llamadas = 0;
-        var procesadorQueFalla = new ProcesadorOutbox(db, evento =>
+        await using (var db = await CrearYMigrarAsync())
         {
-            llamadas++;
-            if (llamadas == 2)
-                throw new InvalidOperationException("Fallo simulado del notificador.");
-            recibidos.Add(evento);
-        });
+            var outbox = new OutboxEf(db);
+            outbox.Registrar(new PedidoPagado(Guid.NewGuid(), Guid.NewGuid(), new Dinero(25m), "REF-1", ahora));
+            outbox.Registrar(new DespachoRegistrado(Guid.NewGuid(), "GUIA-1", ahora.AddTicks(1)));
+            await new UnitOfWorkEf(db).CommitAsync();
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => procesadorQueFalla.ProcesarPendientesAsync());
+            var llamadas = 0;
+            var procesadorQueFalla = new ProcesadorOutbox(db, evento =>
+            {
+                llamadas++;
+                if (llamadas == 2)
+                    throw new InvalidOperationException("Fallo simulado del notificador.");
+                recibidos.Add(evento);
+            });
 
-        Assert.Single(recibidos);
-        Assert.Equal(1, await db.EventosOutbox.CountAsync(e => e.ProcesadoUtc == null));
+            await Assert.ThrowsAsync<InvalidOperationException>(() => procesadorQueFalla.ProcesarPendientesAsync());
 
-        var procesadorRecuperado = new ProcesadorOutbox(db, evento => recibidos.Add(evento));
-        await procesadorRecuperado.ProcesarPendientesAsync();
+            Assert.Single(recibidos);
+            Assert.Equal(1, await db.EventosOutbox.CountAsync(e => e.ProcesadoUtc == null));
+        } // Se cierra el contexto que sufrió el fallo, como al detener la aplicación.
 
-        Assert.Equal(2, recibidos.Count);
-        Assert.Empty(await db.EventosOutbox.Where(e => e.ProcesadoUtc == null).ToListAsync());
+        await using (var dbReabierta = CrearContexto())
+        {
+            var procesadorTrasReinicio = new ProcesadorOutbox(dbReabierta, evento => recibidos.Add(evento));
+            await procesadorTrasReinicio.ProcesarPendientesAsync();
+
+            Assert.Equal(2, recibidos.Count);
+            Assert.Equal(2, recibidos.Select(e => e.GetType()).Distinct().Count());
+            Assert.Empty(await dbReabierta.EventosOutbox.Where(e => e.ProcesadoUtc == null).ToListAsync());
+        }
     }
 
     public void Dispose()

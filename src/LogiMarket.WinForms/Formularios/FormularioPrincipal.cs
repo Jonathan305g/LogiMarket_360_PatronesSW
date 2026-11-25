@@ -87,7 +87,8 @@ public sealed class FormularioPrincipal : Form
             Font = EstiloUi.FuenteSubtitulo,
             ForeColor = EstiloUi.ColorTextoSecundario,
             AutoSize = true,
-            Location = new Point(175, 19)
+            // Deja espacio suficiente al título de la marca; ambos labels se solapaban.
+            Location = new Point(215, 19)
         };
 
         var panelDerecho = new FlowLayoutPanel

@@ -1,6 +1,7 @@
 using LogiMarket.Application.Abstractions.Repositories;
-using LogiMarket.Domain.Entities;
+using LogiMarket.Application.UseCases.Inventario;
 using LogiMarket.Domain.Enums;
+using LogiMarket.WinForms.Sesion;
 
 namespace LogiMarket.WinForms.Controles;
 
@@ -8,9 +9,8 @@ public sealed class PanelInventario : UserControl
 {
     private const int UmbralStockBajo = 5;
     private readonly ICatalogoRepository _catalogo;
-    private readonly IProductoRepository _productos;
     private readonly IMovimientoInventarioRepository _movimientos;
-    private readonly IUnitOfWork _uow;
+    private readonly IAjustarInventarioCasoUso _ajustarInventario;
 
     private readonly DataGridView _grillaStock = new() { Dock = DockStyle.Fill };
     private readonly DataGridView _grillaMovimientos = new() { Dock = DockStyle.Fill };
@@ -22,14 +22,14 @@ public sealed class PanelInventario : UserControl
 
     public PanelInventario(
         ICatalogoRepository catalogo,
-        IProductoRepository productos,
         IMovimientoInventarioRepository movimientos,
-        IUnitOfWork uow)
+        IAjustarInventarioCasoUso ajustarInventario,
+        UsuarioActualEnSesion sesion)
     {
         _catalogo = catalogo;
-        _productos = productos;
         _movimientos = movimientos;
-        _uow = uow;
+        _ajustarInventario = ajustarInventario;
+        _btnRegistrar.Enabled = sesion.Rol is RolUsuario.Admin or RolUsuario.Bodega;
 
         Dock = DockStyle.Fill;
         BackColor = Color.White;
@@ -221,36 +221,15 @@ public sealed class PanelInventario : UserControl
 
         var sku = _cmbSku.SelectedItem.ToString()!.Split(" - ")[0].Trim();
         var cantidad = (int)_numCantidad.Value;
-        if (cantidad == 0)
-        {
-            MostrarError("La cantidad a ajustar no puede ser cero.");
-            return;
-        }
 
         try
         {
-            var productos = await _productos.ObtenerPorSkusAsync(new[] { sku });
-            var producto = productos.FirstOrDefault();
-            if (producto is null)
+            var resultado = await _ajustarInventario.EjecutarAsync(new SolicitudAjusteInventario(sku, cantidad));
+            if (!resultado.Exitoso)
             {
-                MostrarError($"No se encontró el producto con SKU {sku}.");
+                MostrarError(resultado.Error?.Mensaje ?? "No se pudo registrar el ajuste.");
                 return;
             }
-
-            if (cantidad > 0)
-                producto.ReintegrarStock(cantidad);
-            else
-                producto.DescontarStock(-cantidad);
-
-            var movimiento = new MovimientoInventario(
-                sku,
-                cantidad,
-                MotivoMovimiento.Ajuste,
-                Guid.NewGuid(),
-                DateTime.UtcNow);
-
-            _movimientos.Agregar(movimiento);
-            await _uow.CommitAsync();
 
             _lblMensaje.ForeColor = EstiloUi.ColorExito;
             _lblMensaje.Text = $"Ajuste registrado: {sku} ({cantidad:+0;-0})";

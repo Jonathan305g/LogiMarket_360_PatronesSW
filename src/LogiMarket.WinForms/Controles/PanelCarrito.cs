@@ -1,12 +1,11 @@
 using LogiMarket.Application.Abstractions.Repositories;
+using LogiMarket.Application.UseCases.Pedidos;
 using LogiMarket.Domain.Catalog.Composite;
-using LogiMarket.Domain.Delivery.AbstractFactory;
 using LogiMarket.Domain.Entities;
 using LogiMarket.Domain.Enums;
 using LogiMarket.Domain.Exceptions;
 using LogiMarket.Domain.Orders.Builder;
 using LogiMarket.Domain.Orders.Memento;
-using LogiMarket.Domain.Pricing.Strategy;
 using LogiMarket.WinForms.Mediador;
 
 namespace LogiMarket.WinForms.Controles;
@@ -15,18 +14,18 @@ public sealed class PanelCarrito : UserControl
 {
     private readonly IClienteRepository _clientes;
     private readonly ICatalogoRepository _catalogo;
-    private readonly IPedidoRepository _pedidos;
-    private readonly IUnitOfWork _uow;
+    private readonly IValidarPedidoCasoUso _validarPedido;
+    private readonly ICotizadorPedido _cotizador;
     private readonly IMediadorPrincipal _mediador;
 
     private readonly HistorialEdiciones _historial = new();
     private Pedido? _pedido;
     private Cliente? _clienteActual;
 
-    private readonly ComboBox _cmbCliente = new() { Width = 220, DropDownStyle = ComboBoxStyle.DropDownList, Font = EstiloUi.FuenteNormal };
-    private readonly ComboBox _cmbEntrega = new() { Width = 110, DropDownStyle = ComboBoxStyle.DropDownList, Font = EstiloUi.FuenteNormal };
-    private readonly ComboBox _cmbElementos = new() { Width = 240, DropDownStyle = ComboBoxStyle.DropDownList, Font = EstiloUi.FuenteNormal };
-    private readonly NumericUpDown _numCantidad = new() { Width = 65, Minimum = 1, Maximum = 999, Value = 1, Font = EstiloUi.FuenteNormal };
+    private readonly ComboBox _cmbCliente = new() { Width = 170, DropDownStyle = ComboBoxStyle.DropDownList, Font = EstiloUi.FuenteNormal };
+    private readonly ComboBox _cmbEntrega = new() { Width = 95, DropDownStyle = ComboBoxStyle.DropDownList, Font = EstiloUi.FuenteNormal };
+    private readonly ComboBox _cmbElementos = new() { Width = 185, DropDownStyle = ComboBoxStyle.DropDownList, Font = EstiloUi.FuenteNormal };
+    private readonly NumericUpDown _numCantidad = new() { Width = 55, Minimum = 1, Maximum = 999, Value = 1, Font = EstiloUi.FuenteNormal };
     private readonly Button _btnAgregar = new() { Text = "Añadir", Width = 90 };
 
     private readonly DataGridView _grilla = new() { Dock = DockStyle.Fill };
@@ -43,24 +42,17 @@ public sealed class PanelCarrito : UserControl
     private readonly Button _btnValidar = new() { Text = "Validar pedido", Width = 190, Height = 38 };
     private readonly Label _lblMensaje = new() { AutoSize = true, Font = EstiloUi.FuenteNormal, Margin = new Padding(0, 8, 0, 0) };
 
-    private readonly CalculadoraDescuento _calculadoraDescuento = new(new IPoliticaDescuento[]
-    {
-        new Mayorista15(),
-        new Vip10(),
-        new SinDescuento()
-    });
-
     public PanelCarrito(
         IClienteRepository clientes,
         ICatalogoRepository catalogo,
-        IPedidoRepository pedidos,
-        IUnitOfWork uow,
+        IValidarPedidoCasoUso validarPedido,
+        ICotizadorPedido cotizador,
         IMediadorPrincipal mediador)
     {
         _clientes = clientes;
         _catalogo = catalogo;
-        _pedidos = pedidos;
-        _uow = uow;
+        _validarPedido = validarPedido;
+        _cotizador = cotizador;
         _mediador = mediador;
 
         Dock = DockStyle.Fill;
@@ -111,8 +103,8 @@ public sealed class PanelCarrito : UserControl
             Padding = new Padding(16, 8, 16, 16),
             BackColor = Color.White
         };
-        panelCentral.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 70f));
-        panelCentral.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 30f));
+        panelCentral.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 65f));
+        panelCentral.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 35f));
 
         // Tarjeta Tabla de Líneas
         var tarjetaLineas = EstiloUi.CrearTarjeta(0, 0, new Padding(12));
@@ -166,8 +158,8 @@ public sealed class PanelCarrito : UserControl
             AutoSize = true,
             Padding = new Padding(0, 8, 0, 16)
         };
-        tablaTotales.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 60f));
-        tablaTotales.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 40f));
+        tablaTotales.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 52f));
+        tablaTotales.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 48f));
 
         tablaTotales.Controls.Add(new Label { Text = "Subtotal:", Font = EstiloUi.FuenteNormal, ForeColor = EstiloUi.ColorTextoSecundario, AutoSize = true }, 0, 0);
         tablaTotales.Controls.Add(_lblSubtotal, 1, 0);
@@ -386,21 +378,12 @@ public sealed class PanelCarrito : UserControl
     {
         if (_pedido is null || _clienteActual is null) return;
 
-        var subtotal = _pedido.Subtotal;
-        var entrega = _pedido.Entrega;
-        var fabricaEntrega = PlanificadorEntrega.ObtenerFabrica(entrega);
-        var tarifa = fabricaEntrega.CrearCalculadoraTarifa().Calcular();
-
-        var contextoDescuento = new ContextoDescuento(_clienteActual.Categoria, _pedido.UnidadesFisicas);
-        var resultadoDescuento = _calculadoraDescuento.Calcular(subtotal, contextoDescuento);
-
-        var total = subtotal.Valor - resultadoDescuento.Monto.Valor + tarifa.Valor;
-
-        _lblSubtotal.Text = $"USD {subtotal.Valor:F2}";
-        _lblDescuentoTitulo.Text = $"Descuento ({resultadoDescuento.Politica}):";
-        _lblDescuento.Text = $"- USD {resultadoDescuento.Monto.Valor:F2}";
-        _lblEntrega.Text = $"USD {tarifa.Valor:F2}";
-        _lblTotal.Text = $"USD {total:F2}";
+        var cotizacion = _cotizador.Cotizar(_pedido, _clienteActual.Categoria);
+        _lblSubtotal.Text = $"USD {cotizacion.Subtotal.Valor:F2}";
+        _lblDescuentoTitulo.Text = $"Descuento ({cotizacion.Politica}):";
+        _lblDescuento.Text = $"- USD {cotizacion.Descuento.Valor:F2}";
+        _lblEntrega.Text = $"USD {cotizacion.Tarifa.Valor:F2}";
+        _lblTotal.Text = $"USD {cotizacion.Total.Valor:F2}";
     }
 
     private async Task GuardarYValidarPedidoAsync()
@@ -414,18 +397,13 @@ public sealed class PanelCarrito : UserControl
 
         try
         {
-            var entrega = _pedido.Entrega;
-            var fabricaEntrega = PlanificadorEntrega.ObtenerFabrica(entrega);
-            var tarifa = fabricaEntrega.CrearCalculadoraTarifa().Calcular();
-            var contextoDescuento = new ContextoDescuento(_clienteActual!.Categoria, _pedido.UnidadesFisicas);
-            var resultadoDescuento = _calculadoraDescuento.Calcular(_pedido.Subtotal, contextoDescuento);
-
-            // Validar pedido y aplicar tarifas
-            _pedido.Validar();
-            _pedido.Valorar(resultadoDescuento.Monto, tarifa);
-
-            _pedidos.Agregar(_pedido);
-            await _uow.CommitAsync();
+            var resultado = await _validarPedido.EjecutarAsync(_pedido, _clienteActual!.Categoria);
+            if (!resultado.Exitoso || resultado.Pedido is null)
+            {
+                MostrarError(resultado.Error ?? "No se pudo validar el pedido.");
+                return;
+            }
+            _pedido = resultado.Pedido;
 
             _historial.Limpiar();
             ActualizarBotonesMemento();

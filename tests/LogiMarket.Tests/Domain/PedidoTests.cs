@@ -1,4 +1,8 @@
 using LogiMarket.Domain.Exceptions;
+using LogiMarket.Domain.Catalog.Composite;
+using LogiMarket.Domain.Entities;
+using LogiMarket.Domain.Enums;
+using LogiMarket.Domain.Orders.Builder;
 using LogiMarket.Domain.ValueObjects;
 using LogiMarket.Tests.Fakes;
 using static LogiMarket.Tests.Fakes.CatalogoDePrueba;
@@ -73,5 +77,27 @@ public class PedidoTests
         pedido.Validar();
 
         Assert.Throws<DomainException>(() => pedido.Valorar(new Dinero(61m), new Dinero(5m)));
+    }
+
+    [Fact]
+    public void PedidoPagado_NoCambiaSiCambiaElPrecioDelCatalogoNiAdmiteNuevaValoracion() // P08
+    {
+        var producto = new Producto("P99", "Mouse de prueba", new Dinero(20m), 0.2m, 8);
+        var pedido = new PedidoBuilder()
+            .ConCliente(new Cliente("Ana", CategoriaCliente.Vip))
+            .AgregarLinea(new ProductoSimple(producto), 1)
+            .Construir();
+        pedido.Validar();
+        pedido.Valorar(Dinero.Cero, new Dinero(5m));
+        pedido.Pagar();
+        var historialAntes = pedido.Historial.Count;
+
+        producto.CambiarPrecio(new Dinero(99m)); // Una edición del catálogo no reescribe la venta histórica.
+
+        Assert.Throws<DomainException>(() => pedido.Valorar(new Dinero(1m), Dinero.Cero));
+        Assert.Equal(20m, pedido.Detalles.Single().PrecioUnitario.Valor);
+        Assert.Equal(25m, pedido.Total.Valor);
+        Assert.Equal(EstadoPedido.Pagado, pedido.Estado);
+        Assert.Equal(historialAntes, pedido.Historial.Count);
     }
 }
