@@ -3,6 +3,8 @@ using LogiMarket.Application.UseCases.Clientes;
 using LogiMarket.Domain.Entities;
 using LogiMarket.Domain.Enums;
 using LogiMarket.Domain.Exceptions;
+using LogiMarket.Application.Security;
+using LogiMarket.WinForms.Sesion;
 
 namespace LogiMarket.WinForms.Controles;
 
@@ -10,6 +12,7 @@ public sealed class PanelClientes : UserControl
 {
     private readonly IClienteRepository _clientes;
     private readonly IGestionClientes _gestion;
+    private readonly UsuarioActualEnSesion _sesion;
 
     private readonly TextBox _txtBuscar = new() { Width = 260, Font = EstiloUi.FuenteNormal };
     private readonly DataGridView _grilla = new() { Dock = DockStyle.Fill };
@@ -23,10 +26,11 @@ public sealed class PanelClientes : UserControl
     private List<Cliente> _listaClientes = new();
     private Cliente? _clienteSeleccionado;
 
-    public PanelClientes(IClienteRepository clientes, IGestionClientes gestion)
+    public PanelClientes(IClienteRepository clientes, IGestionClientes gestion, UsuarioActualEnSesion sesion)
     {
         _clientes = clientes;
         _gestion = gestion;
+        _sesion = sesion;
 
         Dock = DockStyle.Fill;
         BackColor = Color.White;
@@ -113,6 +117,11 @@ public sealed class PanelClientes : UserControl
         var flujoBotones = new FlowLayoutPanel { AutoSize = true, Margin = new Padding(0, 20, 0, 0) };
         EstiloUi.AplicarBotonPrimario(_btnGuardar);
         EstiloUi.AplicarBotonSecundario(_btnCancelar);
+        var puedeGestionar = PoliticaDeAcceso.PuedeGestionarClientes(_sesion.Rol);
+        _btnGuardar.Enabled = puedeGestionar;
+        _btnCancelar.Enabled = puedeGestionar;
+        _txtNombre.Enabled = puedeGestionar;
+        _cmbCategoria.Enabled = puedeGestionar;
 
         _btnGuardar.Click += async (_, _) => await GuardarClienteAsync();
         _btnCancelar.Click += (_, _) => LimpiarFicha();

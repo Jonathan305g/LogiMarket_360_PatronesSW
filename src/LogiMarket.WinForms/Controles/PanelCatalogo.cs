@@ -2,6 +2,8 @@ using LogiMarket.Application.Abstractions.Repositories;
 using LogiMarket.Application.UseCases.Catalogo;
 using LogiMarket.Domain.Catalog.Composite;
 using LogiMarket.Domain.Catalog.Visitor;
+using LogiMarket.WinForms.Sesion;
+using LogiMarket.Application.Security;
 
 namespace LogiMarket.WinForms.Controles;
 
@@ -10,6 +12,7 @@ public sealed class PanelCatalogo : UserControl
     private const int UmbralStockBajo = 5;
     private readonly ICatalogoRepository _catalogo;
     private readonly IGestionCatalogo _gestion;
+    private readonly UsuarioActualEnSesion _sesion;
     private readonly Label _lblMensaje = new() { AutoSize = true, Font = EstiloUi.FuenteNormal };
 
     private readonly TextBox _txtBuscar = new() { Width = 280, Font = EstiloUi.FuenteNormal };
@@ -27,10 +30,11 @@ public sealed class PanelCatalogo : UserControl
 
     private List<ResumenElementoCatalogo> _elementos = new();
 
-    public PanelCatalogo(ICatalogoRepository catalogo, IGestionCatalogo gestion)
+    public PanelCatalogo(ICatalogoRepository catalogo, IGestionCatalogo gestion, UsuarioActualEnSesion sesion)
     {
         _catalogo = catalogo;
         _gestion = gestion;
+        _sesion = sesion;
 
         Dock = DockStyle.Fill;
         BackColor = Color.White;
@@ -54,21 +58,25 @@ public sealed class PanelCatalogo : UserControl
 
         var btnNuevoProducto = new Button { Text = "Nuevo producto", Width = 116 };
         EstiloUi.AplicarBotonPrimario(btnNuevoProducto);
+        btnNuevoProducto.Visible = PoliticaDeAcceso.PuedeAdministrarCatalogo(_sesion.Rol);
         btnNuevoProducto.Click += async (_, _) => await EditarProductoAsync(null);
         flujoTop.Controls.Add(btnNuevoProducto);
 
         var btnEditar = new Button { Text = "Editar", Width = 72 };
         EstiloUi.AplicarBotonSecundario(btnEditar);
+        btnEditar.Visible = PoliticaDeAcceso.PuedeAdministrarCatalogo(_sesion.Rol);
         btnEditar.Click += async (_, _) => await EditarSeleccionAsync();
         flujoTop.Controls.Add(btnEditar);
 
         var btnEliminar = new Button { Text = "Eliminar", Width = 78 };
         EstiloUi.AplicarBotonSecundario(btnEliminar);
+        btnEliminar.Visible = PoliticaDeAcceso.PuedeAdministrarCatalogo(_sesion.Rol);
         btnEliminar.Click += async (_, _) => await EliminarSeleccionAsync();
         flujoTop.Controls.Add(btnEliminar);
 
         var btnKit = new Button { Text = "Nuevo kit", Width = 86 };
         EstiloUi.AplicarBotonSecundario(btnKit);
+        btnKit.Visible = PoliticaDeAcceso.PuedeAdministrarCatalogo(_sesion.Rol);
         btnKit.Click += async (_, _) => await EditarKitAsync();
         flujoTop.Controls.Add(btnKit);
 

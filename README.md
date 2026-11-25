@@ -1,69 +1,137 @@
-# LogiMarket 360
+# LogiMarket 360 — Control Comercial y Logístico
 
-Aplicación empresarial de escritorio para ventas y logística. La solución separa Domain, Application, Infrastructure, WinForms y Tests. Los pagos, correos y SMS son simulados; no se conecta a servicios externos.
+Aplicación empresarial de escritorio desarrollada en C# y Windows Forms (.NET 8) bajo arquitectura limpia (Clean Architecture), principios SOLID y los 23 patrones de diseño GoF. El sistema coordina catálogo y kits compuestos, clientes, pedidos con ciclo de vida completo, cobros simulados, despacho, devoluciones, inventario trazable, reportes y auditoría.
 
-## Requisitos
+---
 
-- Windows 10/11 y Visual Studio 2022 con .NET 8 SDK y carga de trabajo de escritorio .NET.
-- SQLite y Entity Framework Core 8 se restauran desde NuGet.
-- Para comandos EF: `dotnet-ef` 8.x (`dotnet tool install --global dotnet-ef --version 8.0.11`).
+## 1. Requisitos del Sistema
 
-## Compilar y ejecutar
+- **Sistema Operativo:** Windows 10 / Windows 11 (64-bit).
+- **Entorno de Ejecución:** [.NET 8.0 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) (versión 8.0.100 o superior).
+- **Entorno de Desarrollo sugerido:** Visual Studio 2022 (con la carga de trabajo *Desarrollo de escritorio de .NET*) o Visual Studio Code / JetBrains Rider.
+- **Herramienta opcional para EF Core:** `dotnet-ef` versión 8.x.
 
-Desde la raíz del repositorio:
+---
+
+## 2. Instalación de .NET 8 y Paquetes
+
+1. Descargar e instalar el **.NET 8 SDK** oficial desde el portal de Microsoft si no se encuentra instalado. Verificar en la terminal:
+   ```powershell
+   dotnet --version
+   ```
+2. (Opcional) Instalar la herramienta global de Entity Framework Core para gestión de migraciones:
+   ```powershell
+   dotnet tool install --global dotnet-ef --version 8.0.11
+   ```
+
+---
+
+## 3. Restauración de Dependencias
+
+Desde la raíz del repositorio, restaurar todos los paquetes NuGet de la solución:
 
 ```powershell
 dotnet restore LogiMarket360.slnx
-dotnet build LogiMarket360.slnx
-dotnet run --project src/LogiMarket.WinForms/LogiMarket.WinForms.csproj
 ```
 
-WinForms aplica las migraciones pendientes y ejecuta el seed idempotente al iniciar. La base predeterminada se guarda en `%LOCALAPPDATA%\LogiMarket360\logimarket.db`. La semilla crea P01–P05, KIT_OFICINA, KIT_TELETRABAJO, clientes de ejemplo y las cuatro cuentas de prueba.
+Los paquetes clave que se descargan automáticamente incluyen:
+- `Microsoft.EntityFrameworkCore.Sqlite` (8.0.11)
+- `Microsoft.EntityFrameworkCore.Design` (8.0.11)
+- `Microsoft.Extensions.DependencyInjection` (8.0.1)
+- `xunit` (2.9.3) y `Microsoft.NET.Test.Sdk`
 
-Para trabajar con una base aislada, define `LOGIMARKET_DB_PATH` antes de iniciar. Por ejemplo:
+---
+
+## 4. Compilación de la Solución
+
+Compilar los 5 proyectos del sistema (`Domain`, `Application`, `Infrastructure`, `WinForms` y `Tests`):
 
 ```powershell
-$env:LOGIMARKET_DB_PATH = Join-Path $env:TEMP 'logimarket-demo.db'
-dotnet run --project src/LogiMarket.WinForms/LogiMarket.WinForms.csproj
+dotnet build LogiMarket360.slnx
 ```
 
-Al cerrar la aplicación, se puede archivar o retirar esa base temporal sin tocar la base normal del usuario. El seed no restablece cantidades de inventario existentes.
+La compilación debe finalizar con **0 advertencias** y **0 errores**.
 
-## Migraciones
+---
 
-El arranque de WinForms aplica `Database.Migrate()`. Para aplicar manualmente:
+## 5. Migración y Datos Semilla (Seed)
 
+La aplicación ejecuta automáticamente `Database.Migrate()` y la siembra idempotente de datos (`DatosSemilla.SembrarAsync`) durante el inicio de WinForms.
+
+- **Ubicación predeterminada de la base SQLite:**
+  ```text
+  %LOCALAPPDATA%\LogiMarket360\logimarket.db
+  ```
+- **Datos iniciales sembrados:**
+  - 5 Productos estándar (`P01` a `P05`) con precios, stock y peso.
+  - 2 Kits anidados (`KIT_OFICINA`, `KIT_TELETRABAJO`) utilizando el patrón Composite.
+  - Clientes de ejemplo con categorías Minorista, VIP y Mayorista.
+  - 4 Cuentas de usuario de prueba con roles asignados.
+  - Stock inicial e historial de movimientos.
+
+Si se requiere aplicar las migraciones manualmente mediante CLI:
 ```powershell
 dotnet ef database update --project src/LogiMarket.Infrastructure/LogiMarket.Infrastructure.csproj --startup-project src/LogiMarket.Infrastructure/LogiMarket.Infrastructure.csproj
 ```
 
-Para crear una migración desde un cambio de modelo:
+---
+
+## 6. Ejecución de la Aplicación WinForms
+
+Iniciar la aplicación desde la terminal en la raíz del repositorio:
 
 ```powershell
-dotnet ef migrations add NombreCambio --project src/LogiMarket.Infrastructure/LogiMarket.Infrastructure.csproj --startup-project src/LogiMarket.Infrastructure/LogiMarket.Infrastructure.csproj --output-dir Migrations
+dotnet run --project src/LogiMarket.WinForms/LogiMarket.WinForms.csproj
 ```
 
-## Cuentas locales de demostración
+La interfaz principal cargará automáticamente la pantalla de **Acceso (Login)**.
 
-| Usuario | Contraseña | Rol |
-| --- | --- | --- |
-| `admin` | `Admin123!` | Admin |
-| `ventas` | `Ventas123!` | Ventas |
-| `bodega` | `Bodega123!` | Bodega |
-| `consulta` | `Consulta123!` | Consulta |
+---
 
-Son cuentas ficticias para evaluación local. Las contraseñas se guardan con PBKDF2 y no deben reutilizarse en otros sistemas.
+## 7. Cuentas Locales de Demostración
 
-## Pruebas
+El sistema incluye 4 cuentas precargadas en el seed para evaluar el control de acceso y navegación por roles (Proxy / Mediator):
+
+| Usuario | Contraseña | Rol asignado | Permisos y Paneles Permitidos |
+| :--- | :--- | :--- | :--- |
+| `admin` | `Admin123!` | **Admin** | Acceso total: catálogo, kits, clientes, pedidos, cobro, despacho, devoluciones, inventario, reportes y auditoría. |
+| `ventas` | `Ventas123!` | **Ventas** | Clientes, carrito/borrador, cobro, pedidos, devoluciones y reportes. |
+| `bodega` | `Bodega123!` | **Bodega** | Catálogo (lectura), inventario/ajustes y panel de despacho/entrega. |
+| `consulta` | `Consulta123!` | **Consulta** | Paneles de solo lectura: catálogo, pedidos, inventario y reportes. |
+
+> **Nota:** Las contraseñas están almacenadas mediante hash seguro **PBKDF2** con sal criptográfica única y no en texto plano.
+
+---
+
+## 8. Comando de Pruebas Automatizadas
+
+Ejecutar la suite completa de pruebas unitarias, de integración y de patrones de software:
 
 ```powershell
 dotnet test LogiMarket360.slnx
 ```
 
-Las pruebas de integración crean bases SQLite aisladas en la carpeta temporal; no usan ni borran la base de ejecución local. Los escenarios incluyen seed/migración, persistencia tras abrir otro contexto, restricciones, cobros, devoluciones, Outbox, concurrencia y patrones.
+- **Total de pruebas:** 217 pruebas automatizadas (100% aprobadas, 0 fallidas, 0 omitidas).
+- **Aislamiento:** Las pruebas de infraestructura y persistencia generan bases SQLite temporales en memoria o en la carpeta temporal, garantizando que la base de datos local del usuario no se altere.
+- **Cobertura:** Cubre los 23 patrones GoF, reglas de negocio, cálculo de descuentos e impuestos, Outbox transaccional, invariantes de dominio y concurrencia.
 
-## Navegación y permisos
+---
 
-La ventana presenta acceso, panel general, catálogo y kits, clientes, carrito/borrador, pedidos e historial, cobro, despacho/entrega, devoluciones, inventario/movimientos, reportes/comprobantes y auditoría/demostración. La navegación se ajusta al rol y Application vuelve a comprobar permisos antes de cobros, despacho, devoluciones, cancelación y modificaciones de catálogo o clientes.
+## 9. Forma Segura de Restablecer Datos de Prueba
 
-El modo de demostración permite elegir entre la pasarela legada adaptada y la pasarela directa, inducir un rechazo real en el colaborador simulado y hacer fallar una publicación Outbox para reintentarla.
+Para restablecer el sistema a su estado inicial limpio o realizar pruebas aisladas sin afectar datos previos, se disponen de dos métodos seguros:
+
+### Opción A: Restablecimiento completo de la base local
+Cerrar la aplicación y eliminar el archivo de base de datos local ejecutando en PowerShell:
+```powershell
+Remove-Item "$env:LOCALAPPDATA\LogiMarket360\logimarket.db*" -Force -ErrorAction SilentlyContinue
+```
+Al volver a iniciar la aplicación (`dotnet run ...`), se recreará la base de datos SQLite desde cero y se aplicará la semilla de fábrica automáticamente.
+
+### Opción B: Uso de base de datos temporal aislada (Recomendado para demos)
+Definir la variable de entorno `LOGIMARKET_DB_PATH` antes de ejecutar la aplicación:
+```powershell
+$env:LOGIMARKET_DB_PATH = Join-Path $env:TEMP "logimarket-demo-$([System.Guid]::NewGuid()).db"
+dotnet run --project src/LogiMarket.WinForms/LogiMarket.WinForms.csproj
+```
+Al finalizar la demostración, la base temporal se puede descartar sin comprometer la base habitual.

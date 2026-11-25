@@ -10,6 +10,7 @@ public interface IMediadorPrincipal
 {
     event Action<TipoPanel>? PanelCambiado;
     event Action<Guid>? PedidoConfirmado;
+    Func<TipoPanel, bool>? ValidadorPanel { get; set; }
 
     void RegistrarPanelPrincipal(Control contenedor);
     void RegistrarFabricaDePanel(TipoPanel panel, Func<Control> fabrica);

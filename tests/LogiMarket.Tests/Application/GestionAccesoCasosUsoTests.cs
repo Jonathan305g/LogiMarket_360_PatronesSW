@@ -7,6 +7,29 @@ namespace LogiMarket.Tests.Application;
 
 public sealed class GestionAccesoCasosUsoTests
 {
+    [Theory]
+    [InlineData(RolUsuario.Admin, true, true, true, true, true, true, true)]
+    [InlineData(RolUsuario.Ventas, false, false, true, false, false, true, false)]
+    [InlineData(RolUsuario.Bodega, true, false, false, true, true, false, false)]
+    [InlineData(RolUsuario.Consulta, true, false, false, true, false, true, false)]
+    public void MatrizBasicaDeAcceso(
+        RolUsuario rol,
+        bool consultarCatalogo,
+        bool administrarCatalogo,
+        bool gestionarClientes,
+        bool consultarInventario,
+        bool ajustarInventario,
+        bool verReportes,
+        bool auditar)
+    {
+        Assert.Equal(consultarCatalogo, LogiMarket.Application.Security.PoliticaDeAcceso.PuedeConsultarCatalogo(rol));
+        Assert.Equal(administrarCatalogo, LogiMarket.Application.Security.PoliticaDeAcceso.PuedeAdministrarCatalogo(rol));
+        Assert.Equal(gestionarClientes, LogiMarket.Application.Security.PoliticaDeAcceso.PuedeGestionarClientes(rol));
+        Assert.Equal(consultarInventario, LogiMarket.Application.Security.PoliticaDeAcceso.PuedeConsultarInventario(rol));
+        Assert.Equal(ajustarInventario, LogiMarket.Application.Security.PoliticaDeAcceso.PuedeAjustarInventario(rol));
+        Assert.Equal(verReportes, LogiMarket.Application.Security.PoliticaDeAcceso.PuedeVerReportes(rol));
+        Assert.Equal(auditar, LogiMarket.Application.Security.PoliticaDeAcceso.PuedeAuditar(rol));
+    }
     [Fact]
     public async Task Catalogo_ConsultaNoPuedeCambiarProductos()
     {

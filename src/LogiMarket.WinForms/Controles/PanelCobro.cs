@@ -6,6 +6,7 @@ using LogiMarket.Domain.Entities;
 using LogiMarket.Domain.Enums;
 using LogiMarket.WinForms.Mediador;
 using LogiMarket.WinForms.Sesion;
+using LogiMarket.Application.Security;
 
 namespace LogiMarket.WinForms.Controles;
 
@@ -173,6 +174,7 @@ public sealed class PanelCobro : UserControl
         flujoPago.Controls.Add(filaClave);
 
         EstiloUi.AplicarBotonPrimario(_btnConfirmar);
+        _btnConfirmar.Enabled = PoliticaDeAcceso.PuedeCobrar(_sesion.Rol);
         _btnConfirmar.Click += async (_, _) => await CobrarAsync();
         flujoPago.Controls.Add(_btnConfirmar);
 

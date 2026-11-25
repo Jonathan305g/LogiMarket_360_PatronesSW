@@ -7,6 +7,7 @@ public sealed class MediadorPrincipal : IMediadorPrincipal
 
     public event Action<TipoPanel>? PanelCambiado;
     public event Action<Guid>? PedidoConfirmado;
+    public Func<TipoPanel, bool>? ValidadorPanel { get; set; }
 
     public void RegistrarPanelPrincipal(Control contenedor) =>
         _contenedor = contenedor ?? throw new ArgumentNullException(nameof(contenedor));
@@ -17,6 +18,8 @@ public sealed class MediadorPrincipal : IMediadorPrincipal
     public void MostrarPanel(TipoPanel panel)
     {
         if (_contenedor is null)
+            return;
+        if (ValidadorPanel is not null && !ValidadorPanel(panel))
             return;
         if (!_fabricasDePanel.TryGetValue(panel, out var fabrica))
             throw new InvalidOperationException($"No hay un panel registrado para '{panel}'.");

@@ -1,6 +1,8 @@
 using LogiMarket.WinForms.Controles;
 using LogiMarket.WinForms.Mediador;
 using LogiMarket.WinForms.Sesion;
+using LogiMarket.Application.Security;
+using LogiMarket.Domain.Enums;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace LogiMarket.WinForms.Formularios;
@@ -49,6 +51,10 @@ public sealed class FormularioPrincipal : Form
         Controls.Add(barraSuperior);
 
         _mediador.RegistrarPanelPrincipal(_panelContenido);
+        _mediador.ValidadorPanel = panel =>
+            panel == TipoPanel.Acceso
+                ? true
+                : _sesion.EstaAutenticado && PuedeAbrirPanel(_sesion.Rol, panel);
         _mediador.PanelCambiado += OnPanelCambiado;
         RegistrarPaneles();
 
@@ -229,23 +235,30 @@ public sealed class FormularioPrincipal : Form
     {
         foreach (var (panel, boton) in _botonesNavegacion)
         {
-            boton.Visible = panel == TipoPanel.Acceso && !_sesion.EstaAutenticado
-                || _sesion.EstaAutenticado && PuedeAbrirPanel(_sesion.Rol, panel);
+            if (panel == TipoPanel.Acceso)
+                boton.Visible = !_sesion.EstaAutenticado;
+            else
+                boton.Visible = _sesion.EstaAutenticado && PuedeAbrirPanel(_sesion.Rol, panel);
         }
     }
 
     private static bool PuedeAbrirPanel(LogiMarket.Domain.Enums.RolUsuario rol, TipoPanel panel) =>
-        panel == TipoPanel.PanelGeneral
-        || panel == TipoPanel.Catalogo
-        || panel == TipoPanel.Pedidos
-        || panel == TipoPanel.Reportes
-        || panel == TipoPanel.Inventario
-        || panel == TipoPanel.Auditoria
-        || rol == LogiMarket.Domain.Enums.RolUsuario.Admin
-        || rol == LogiMarket.Domain.Enums.RolUsuario.Ventas
-            && panel is TipoPanel.Clientes or TipoPanel.Carrito or TipoPanel.Cobro or TipoPanel.Devoluciones
-        || rol == LogiMarket.Domain.Enums.RolUsuario.Bodega
-            && panel == TipoPanel.Despacho;
+        panel switch
+        {
+            TipoPanel.PanelGeneral => true,
+            TipoPanel.Catalogo => PoliticaDeAcceso.PuedeConsultarCatalogo(rol),
+            TipoPanel.Clientes => PoliticaDeAcceso.PuedeGestionarClientes(rol),
+            TipoPanel.Carrito => PoliticaDeAcceso.PuedeAbrirCarrito(rol),
+            TipoPanel.Pedidos => PoliticaDeAcceso.PuedeVerPedidos(rol),
+            TipoPanel.Cobro => PoliticaDeAcceso.PuedeCobrar(rol),
+            TipoPanel.Despacho => PoliticaDeAcceso.PuedeDespachar(rol),
+            TipoPanel.Devoluciones => PoliticaDeAcceso.PuedeProcesarDevolucion(rol),
+            TipoPanel.Inventario => PoliticaDeAcceso.PuedeConsultarInventario(rol),
+            TipoPanel.Reportes => PoliticaDeAcceso.PuedeVerReportes(rol),
+            TipoPanel.Auditoria => PoliticaDeAcceso.PuedeAuditar(rol),
+            TipoPanel.Acceso => true,
+            _ => false
+        };
 
     public void ActualizarEstadoSesion()
     {

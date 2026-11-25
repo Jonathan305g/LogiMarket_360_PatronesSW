@@ -3,6 +3,8 @@ using LogiMarket.Application.Abstractions.Services;
 using LogiMarket.Application.Comprobantes.Bridge;
 using LogiMarket.Domain.Entities;
 using LogiMarket.Domain.Enums;
+using LogiMarket.Application.Security;
+using LogiMarket.WinForms.Sesion;
 
 namespace LogiMarket.WinForms.Controles;
 
@@ -12,6 +14,7 @@ public sealed class PanelReportes : UserControl
     private readonly IDevolucionRepository _devoluciones;
     private readonly IProcesadorOutbox _procesadorOutbox;
     private readonly IFabricaSalidaArchivo _fabricaSalidaArchivo;
+    private readonly UsuarioActualEnSesion _sesion;
 
     private readonly DateTimePicker _dtpDesde = new() { Width = 115, Format = DateTimePickerFormat.Short, Font = EstiloUi.FuenteNormal };
     private readonly DateTimePicker _dtpHasta = new() { Width = 115, Format = DateTimePickerFormat.Short, Font = EstiloUi.FuenteNormal };
@@ -43,12 +46,14 @@ public sealed class PanelReportes : UserControl
         IPedidoRepository pedidos,
         IDevolucionRepository devoluciones,
         IProcesadorOutbox procesadorOutbox,
-        IFabricaSalidaArchivo fabricaSalidaArchivo)
+        IFabricaSalidaArchivo fabricaSalidaArchivo,
+        UsuarioActualEnSesion sesion)
     {
         _pedidos = pedidos;
         _devoluciones = devoluciones;
         _procesadorOutbox = procesadorOutbox;
         _fabricaSalidaArchivo = fabricaSalidaArchivo;
+        _sesion = sesion;
 
         Dock = DockStyle.Fill;
         BackColor = Color.White;
@@ -164,6 +169,7 @@ public sealed class PanelReportes : UserControl
         flujoSalida.Controls.Add(_btnExportarTxt);
 
         EstiloUi.AplicarBotonSecundario(_btnProcesarOutbox);
+        _btnProcesarOutbox.Enabled = _sesion.Rol == RolUsuario.Admin;
         _btnProcesarOutbox.Click += async (_, _) => await ProcesarOutboxAsync();
         flujoSalida.Controls.Add(_btnProcesarOutbox);
 

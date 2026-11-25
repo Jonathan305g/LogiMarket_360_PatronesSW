@@ -3,6 +3,8 @@ using LogiMarket.Application.Abstractions.Services;
 using LogiMarket.Application.UseCases.Despacho;
 using LogiMarket.Domain.Entities;
 using LogiMarket.Domain.Enums;
+using LogiMarket.Application.Security;
+using LogiMarket.WinForms.Sesion;
 
 namespace LogiMarket.WinForms.Controles;
 
@@ -12,6 +14,7 @@ public sealed class PanelDespacho : UserControl
     private readonly IDespachoRepository _despachos;
     private readonly IGestionDespacho _despacho;
     private readonly IProcesadorOutbox _outbox;
+    private readonly UsuarioActualEnSesion _sesion;
 
     private readonly DataGridView _grilla = new() { Dock = DockStyle.Fill };
     private readonly TextBox _txtPedido = new() { Width = 260, ReadOnly = true, Font = EstiloUi.FuenteNormal };
@@ -26,12 +29,14 @@ public sealed class PanelDespacho : UserControl
         IPedidoRepository pedidos,
         IDespachoRepository despachos,
         IGestionDespacho despacho,
-        IProcesadorOutbox outbox)
+        IProcesadorOutbox outbox,
+        UsuarioActualEnSesion sesion)
     {
         _pedidos = pedidos;
         _despachos = despachos;
         _despacho = despacho;
         _outbox = outbox;
+        _sesion = sesion;
 
         Dock = DockStyle.Fill;
         BackColor = Color.White;
@@ -117,6 +122,7 @@ public sealed class PanelDespacho : UserControl
         flujoCampos.Controls.Add(_txtGuia);
 
         EstiloUi.AplicarBotonPrimario(_btnDespachar);
+        _btnDespachar.Enabled = PoliticaDeAcceso.PuedeDespachar(_sesion.Rol);
         _btnDespachar.Margin = new Padding(0, 20, 0, 8);
         _btnDespachar.Click += async (_, _) => await DespacharAsync();
         flujoCampos.Controls.Add(_btnDespachar);
@@ -172,7 +178,12 @@ public sealed class PanelDespacho : UserControl
             return;
         }
 
-        var id = (Guid)_grilla.SelectedRows[0].Cells["Id"].Value;
+        var valorId = _grilla.SelectedRows[0].Cells["Id"].Value;
+        if (valorId is not Guid id)
+        {
+            Limpiar();
+            return;
+        }
         var resumenes = await _pedidos.ListarResumenAsync();
         _seleccionado = resumenes.FirstOrDefault(r => r.Id == id);
         if (_seleccionado is null) return;
@@ -184,8 +195,10 @@ public sealed class PanelDespacho : UserControl
         var despacho = despachos.FirstOrDefault(d => d.PedidoId == _seleccionado.Id);
         _txtGuia.Text = despacho?.Guia ?? "Pendiente de despacho";
 
-        _btnDespachar.Enabled = _seleccionado.Estado == EstadoPedido.Pagado;
-        _btnEntregar.Enabled = _seleccionado.Estado == EstadoPedido.Despachado;
+        _btnDespachar.Enabled = PoliticaDeAcceso.PuedeDespachar(_sesion.Rol)
+            && _seleccionado.Estado == EstadoPedido.Pagado;
+        _btnEntregar.Enabled = PoliticaDeAcceso.PuedeEntregar(_sesion.Rol)
+            && _seleccionado.Estado == EstadoPedido.Despachado;
     }
 
     private void Limpiar()

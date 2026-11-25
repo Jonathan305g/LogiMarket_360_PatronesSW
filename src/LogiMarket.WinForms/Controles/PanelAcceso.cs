@@ -63,8 +63,24 @@ public sealed class PanelAcceso : UserControl
 
         var lblUsuario = new Label { Text = "Usuario", Font = EstiloUi.FuenteNegrita, ForeColor = EstiloUi.ColorTexto, AutoSize = true, Margin = new Padding(0, 8, 0, 4) };
         _txtUsuario.Text = "admin";
+        _txtUsuario.KeyDown += async (_, e) =>
+        {
+            if (e.KeyCode == Keys.Enter)
+            {
+                e.SuppressKeyPress = true;
+                await IntentarIngresarAsync();
+            }
+        };
         var lblContrasena = new Label { Text = "Contraseña", Font = EstiloUi.FuenteNegrita, ForeColor = EstiloUi.ColorTexto, AutoSize = true, Margin = new Padding(0, 12, 0, 4) };
         _txtContrasena.Text = "Admin123!";
+        _txtContrasena.KeyDown += async (_, e) =>
+        {
+            if (e.KeyCode == Keys.Enter)
+            {
+                e.SuppressKeyPress = true;
+                await IntentarIngresarAsync();
+            }
+        };
 
         var btnIngresar = new Button
         {
@@ -156,6 +172,8 @@ public sealed class PanelAcceso : UserControl
     private async Task IntentarIngresarAsync()
     {
         _lblError.Text = string.Empty;
+        _txtUsuario.Enabled = false;
+        _txtContrasena.Enabled = false;
         try
         {
             var resultado = await _inicioSesion.IniciarSesionAsync(_txtUsuario.Text, _txtContrasena.Text);
@@ -171,6 +189,11 @@ public sealed class PanelAcceso : UserControl
         catch (Exception ex)
         {
             _lblError.Text = $"No se pudo iniciar sesión: {ex.Message}";
+        }
+        finally
+        {
+            _txtUsuario.Enabled = true;
+            _txtContrasena.Enabled = true;
         }
     }
 }

@@ -262,7 +262,12 @@ public sealed class PanelPedidos : UserControl
             return;
         }
 
-        var id = (Guid)_grilla.SelectedRows[0].Cells["Id"].Value!;
+        var valorId = _grilla.SelectedRows[0].Cells["Id"].Value;
+        if (valorId is not Guid id)
+        {
+            LimpiarDetalle();
+            return;
+        }
         var pedido = await _pedidos.ObtenerPorIdAsync(id);
         if (pedido is null) return;
         var puedeCancelarPorRol = _sesion.Rol is RolUsuario.Admin or RolUsuario.Ventas;

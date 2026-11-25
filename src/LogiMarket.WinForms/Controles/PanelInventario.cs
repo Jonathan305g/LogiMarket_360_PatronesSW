@@ -2,6 +2,7 @@ using LogiMarket.Application.Abstractions.Repositories;
 using LogiMarket.Application.UseCases.Inventario;
 using LogiMarket.Domain.Enums;
 using LogiMarket.WinForms.Sesion;
+using LogiMarket.Application.Security;
 
 namespace LogiMarket.WinForms.Controles;
 
@@ -29,7 +30,10 @@ public sealed class PanelInventario : UserControl
         _catalogo = catalogo;
         _movimientos = movimientos;
         _ajustarInventario = ajustarInventario;
-        _btnRegistrar.Enabled = sesion.Rol is RolUsuario.Admin or RolUsuario.Bodega;
+        var puedeAjustar = PoliticaDeAcceso.PuedeAjustarInventario(sesion.Rol);
+        _btnRegistrar.Enabled = puedeAjustar;
+        _cmbSku.Enabled = puedeAjustar;
+        _numCantidad.Enabled = puedeAjustar;
 
         Dock = DockStyle.Fill;
         BackColor = Color.White;

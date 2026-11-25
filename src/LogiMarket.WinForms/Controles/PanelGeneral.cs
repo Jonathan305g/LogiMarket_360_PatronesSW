@@ -2,6 +2,8 @@ using LogiMarket.Application.Abstractions.Repositories;
 using LogiMarket.Application.Abstractions.Services;
 using LogiMarket.Domain.Enums;
 using LogiMarket.WinForms.Sesion;
+using LogiMarket.WinForms.Mediador;
+using LogiMarket.Application.Security;
 
 namespace LogiMarket.WinForms.Controles;
 
@@ -12,6 +14,7 @@ public sealed class PanelGeneral : UserControl
     private readonly IProcesadorOutbox _procesadorOutbox;
     private readonly IDevolucionRepository _devoluciones;
     private readonly UsuarioActualEnSesion _sesion;
+    private readonly IMediadorPrincipal _mediador;
 
     private readonly FlowLayoutPanel _panelMetricas = new()
     {
@@ -42,13 +45,15 @@ public sealed class PanelGeneral : UserControl
         ICatalogoRepository catalogo,
         IProcesadorOutbox procesadorOutbox,
         IDevolucionRepository devoluciones,
-        UsuarioActualEnSesion sesion)
+        UsuarioActualEnSesion sesion,
+        IMediadorPrincipal mediador)
     {
         _pedidos = pedidos;
         _catalogo = catalogo;
         _procesadorOutbox = procesadorOutbox;
         _devoluciones = devoluciones;
         _sesion = sesion;
+        _mediador = mediador;
 
         Dock = DockStyle.Fill;
         BackColor = Color.White;
@@ -136,6 +141,16 @@ public sealed class PanelGeneral : UserControl
         panelListaAlertas.Controls.Add(_lblAlertaStock);
         panelListaAlertas.Controls.Add(_lblAlertaOutbox);
         panelListaAlertas.Controls.Add(_lblAlertaDevoluciones);
+        panelListaAlertas.Controls.Add(CrearAccesoRapido("Abrir pedidos", TipoPanel.Pedidos,
+            PoliticaDeAcceso.PuedeVerPedidos(_sesion.Rol)));
+        panelListaAlertas.Controls.Add(CrearAccesoRapido("Abrir inventario", TipoPanel.Inventario,
+            PoliticaDeAcceso.PuedeConsultarInventario(_sesion.Rol)));
+        panelListaAlertas.Controls.Add(CrearAccesoRapido("Abrir reportes", TipoPanel.Reportes,
+            PoliticaDeAcceso.PuedeVerReportes(_sesion.Rol)));
+        panelListaAlertas.Controls.Add(CrearAccesoRapido("Nuevo carrito", TipoPanel.Carrito,
+            PoliticaDeAcceso.PuedeAbrirCarrito(_sesion.Rol)));
+        panelListaAlertas.Controls.Add(CrearAccesoRapido("Gestionar despacho", TipoPanel.Despacho,
+            PoliticaDeAcceso.PuedeDespachar(_sesion.Rol)));
 
         tarjetaAlertas.Controls.Add(panelListaAlertas);
         tarjetaAlertas.Controls.Add(lblTituloAlertas);
@@ -146,6 +161,21 @@ public sealed class PanelGeneral : UserControl
         Controls.Add(panelCentral);
         Controls.Add(_panelMetricas);
         Controls.Add(encabezado);
+    }
+
+    private Button CrearAccesoRapido(string texto, TipoPanel destino, bool habilitado)
+    {
+        var boton = new Button
+        {
+            Text = texto,
+            Width = 230,
+            Height = 34,
+            Margin = new Padding(0, 4, 0, 4),
+            Enabled = habilitado
+        };
+        EstiloUi.AplicarBotonSecundario(boton);
+        boton.Click += (_, _) => _mediador.MostrarPanel(destino);
+        return boton;
     }
 
     private static Panel CrearTarjeta(string titulo, Label lblValor, int ancho)
@@ -219,9 +249,10 @@ public sealed class PanelGeneral : UserControl
                     $"USD {r.Total:F2}");
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // Fallback silencioso en UI si la base aún no tiene tablas
+            _lblAlertaOutbox.Text = $"• No se pudo actualizar el resumen: {ex.Message}";
+            _lblAlertaOutbox.ForeColor = EstiloUi.ColorPeligro;
         }
     }
 }

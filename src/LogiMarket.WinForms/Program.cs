@@ -42,7 +42,7 @@ namespace LogiMarket.WinForms;
 internal static class Program
 {
     [STAThread]
-    private static void Main()
+    private static void Main(string[] args)
     {
         ApplicationConfiguration.Initialize();
         using var servicios = ConfigurarServicios();
@@ -53,7 +53,112 @@ internal static class Program
         db.Database.Migrate();
         DatosSemilla.SembrarAsync(db).GetAwaiter().GetResult();
 
+        if (args.Length > 0 && args[0] == "--capturas")
+        {
+            var rutaDestino = args.Length > 1
+                ? args[1]
+                : Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "capturas");
+            EjecutarGeneracionCapturas(proveedor, rutaDestino);
+            return;
+        }
+
         System.Windows.Forms.Application.Run(proveedor.GetRequiredService<FormularioPrincipal>());
+    }
+
+    private static void EjecutarGeneracionCapturas(IServiceProvider proveedor, string rutaDestino)
+    {
+        Directory.CreateDirectory(rutaDestino);
+        var form = proveedor.GetRequiredService<FormularioPrincipal>();
+        var mediador = proveedor.GetRequiredService<IMediadorPrincipal>();
+        var sesion = proveedor.GetRequiredService<UsuarioActualEnSesion>();
+        var usuarios = proveedor.GetRequiredService<IUsuarioRepository>();
+
+        form.StartPosition = FormStartPosition.Manual;
+        form.Location = new Point(50, 50);
+        form.Size = new Size(1280, 820);
+        form.Show();
+
+        void Esperar(int ms)
+        {
+            var fin = DateTime.UtcNow.AddMilliseconds(ms);
+            while (DateTime.UtcNow < fin)
+            {
+                System.Windows.Forms.Application.DoEvents();
+                Thread.Sleep(30);
+            }
+        }
+
+        void Capturar(string nombreArchivo)
+        {
+            form.Refresh();
+            Esperar(600);
+            var ruta = Path.Combine(rutaDestino, nombreArchivo);
+            
+            // Intento 1: DrawToBitmap para renderizado interno fiel de controles
+            using var bmp = new Bitmap(form.Width, form.Height);
+            form.DrawToBitmap(bmp, new Rectangle(0, 0, form.Width, form.Height));
+            bmp.Save(ruta, System.Drawing.Imaging.ImageFormat.Png);
+
+            // Intento 2: CopyFromScreen si el escritorio está activo
+            try
+            {
+                var screenRuta = Path.Combine(rutaDestino, "screen_" + nombreArchivo);
+                var bounds = form.Bounds;
+                using var bmpScreen = new Bitmap(bounds.Width, bounds.Height);
+                using var g = Graphics.FromImage(bmpScreen);
+                g.CopyFromScreen(bounds.Location, Point.Empty, bounds.Size);
+                bmpScreen.Save(screenRuta, System.Drawing.Imaging.ImageFormat.Png);
+            }
+            catch
+            {
+                // En entornos sin escritorio activo CopyFromScreen puede no estar disponible
+            }
+        }
+
+        // 1. Acceso
+        mediador.MostrarPanel(TipoPanel.Acceso);
+        Capturar("captura_01_acceso.png");
+
+        // Autenticar como Admin
+        var admin = usuarios.ObtenerPorNombreUsuarioAsync("admin").GetAwaiter().GetResult();
+        if (admin != null)
+        {
+            sesion.IniciarSesion(admin);
+            form.ActualizarEstadoSesion();
+        }
+
+        // Paneles restantes
+        var paneles = new (TipoPanel Panel, string Nombre)[]
+        {
+            (TipoPanel.PanelGeneral, "captura_02_panel_general.png"),
+            (TipoPanel.Catalogo, "captura_03_catalogo.png"),
+            (TipoPanel.Clientes, "captura_04_clientes.png"),
+            (TipoPanel.Carrito, "captura_05_carrito.png"),
+            (TipoPanel.Pedidos, "captura_06_pedidos.png"),
+            (TipoPanel.Cobro, "captura_07_cobro.png"),
+            (TipoPanel.Despacho, "captura_08_despacho.png"),
+            (TipoPanel.Devoluciones, "captura_09_devoluciones.png"),
+            (TipoPanel.Inventario, "captura_10_inventario.png"),
+            (TipoPanel.Reportes, "captura_11_reportes.png"),
+            (TipoPanel.Auditoria, "captura_12_auditoria.png")
+        };
+
+        foreach (var (p, nombre) in paneles)
+        {
+            Console.WriteLine($"[Captura] Mostrando panel {p}...");
+            try
+            {
+                mediador.MostrarPanel(p);
+                Capturar(nombre);
+                Console.WriteLine($"[Captura] Guardada {nombre}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Captura] Error en {p}: {ex.Message}");
+            }
+        }
+
+        form.Close();
     }
 
     private static ServiceProvider ConfigurarServicios()

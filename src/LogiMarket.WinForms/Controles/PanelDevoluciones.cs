@@ -3,6 +3,8 @@ using LogiMarket.Application.Abstractions.Services;
 using LogiMarket.Application.UseCases.Devoluciones;
 using LogiMarket.Domain.Entities;
 using LogiMarket.Domain.Enums;
+using LogiMarket.Application.Security;
+using LogiMarket.WinForms.Sesion;
 
 namespace LogiMarket.WinForms.Controles;
 
@@ -11,6 +13,7 @@ public sealed class PanelDevoluciones : UserControl
     private readonly IPedidoRepository _pedidos;
     private readonly IProcesoDevolucion _devoluciones;
     private readonly IProcesadorOutbox _outbox;
+    private readonly UsuarioActualEnSesion _sesion;
 
     private readonly ComboBox _cmbPedido = new() { Width = 320, DropDownStyle = ComboBoxStyle.DropDownList, Font = EstiloUi.FuenteNormal };
     private readonly ComboBox _cmbMotivo = new() { Width = 180, DropDownStyle = ComboBoxStyle.DropDownList, Font = EstiloUi.FuenteNormal };
@@ -29,11 +32,12 @@ public sealed class PanelDevoluciones : UserControl
 
     private Pedido? _pedidoActual;
 
-    public PanelDevoluciones(IPedidoRepository pedidos, IProcesoDevolucion devoluciones, IProcesadorOutbox outbox)
+    public PanelDevoluciones(IPedidoRepository pedidos, IProcesoDevolucion devoluciones, IProcesadorOutbox outbox, UsuarioActualEnSesion sesion)
     {
         _pedidos = pedidos;
         _devoluciones = devoluciones;
         _outbox = outbox;
+        _sesion = sesion;
 
         Dock = DockStyle.Fill;
         BackColor = Color.White;
@@ -136,6 +140,7 @@ public sealed class PanelDevoluciones : UserControl
         flujoResumen.Controls.Add(_lblAclaracionFlete);
 
         EstiloUi.AplicarBotonPrimario(_btnConfirmar);
+        _btnConfirmar.Enabled = PoliticaDeAcceso.PuedeProcesarDevolucion(_sesion.Rol);
         _btnConfirmar.Margin = new Padding(0, 24, 0, 8);
         _btnConfirmar.Click += async (_, _) => await ConfirmarDevolucionAsync();
         flujoResumen.Controls.Add(_btnConfirmar);
@@ -195,7 +200,8 @@ public sealed class PanelDevoluciones : UserControl
         // El reembolso es exclusivamente sobre productos con descuento, sin incluir tarifa de envío
         var montoReembolso = _pedidoActual.SubtotalConDescuento;
         _lblTotalReembolso.Text = $"USD {montoReembolso.Valor:F2}";
-        _btnConfirmar.Enabled = !_pedidoActual.Devuelto;
+        _btnConfirmar.Enabled = PoliticaDeAcceso.PuedeProcesarDevolucion(_sesion.Rol)
+            && !_pedidoActual.Devuelto;
 
         if (_pedidoActual.Devuelto)
         {
