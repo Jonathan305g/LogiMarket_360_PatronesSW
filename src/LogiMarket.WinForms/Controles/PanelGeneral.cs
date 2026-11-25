@@ -30,6 +30,7 @@ public sealed class PanelGeneral : UserControl
     private readonly Label _lblValDespachar = new();
     private readonly Label _lblValStockBajo = new();
     private readonly Label _lblValVentas = new();
+    private readonly List<Panel> _tarjetasMetricas = new();
 
     private readonly DataGridView _grillaPedidos = new()
     {
@@ -66,11 +67,7 @@ public sealed class PanelGeneral : UserControl
     {
         var encabezado = EstiloUi.CrearEncabezado("Panel general", "Resumen de operaciones, pedidos y movimientos recientes");
 
-        // 4 Tarjetas métricas
-        _panelMetricas.Controls.Add(CrearTarjeta("Pedidos activos", _lblValActivos, 180));
-        _panelMetricas.Controls.Add(CrearTarjeta("Por despachar", _lblValDespachar, 180));
-        _panelMetricas.Controls.Add(CrearTarjeta("Stock bajo", _lblValStockBajo, 180));
-        _panelMetricas.Controls.Add(CrearTarjeta("Ventas (USD)", _lblValVentas, 200));
+        ConfigurarResumenPorRol();
 
         // Área central dividida: Pedidos recientes (izquierda) + Alertas (derecha)
         var panelCentral = new TableLayoutPanel
@@ -139,19 +136,7 @@ public sealed class PanelGeneral : UserControl
             AutoScroll = true
         };
 
-        panelListaAlertas.Controls.Add(_lblAlertaStock);
-        panelListaAlertas.Controls.Add(_lblAlertaOutbox);
-        panelListaAlertas.Controls.Add(_lblAlertaDevoluciones);
-        panelListaAlertas.Controls.Add(CrearAccesoRapido("Abrir pedidos", TipoPanel.Pedidos,
-            PoliticaDeAcceso.PuedeVerPedidos(_sesion.Rol)));
-        panelListaAlertas.Controls.Add(CrearAccesoRapido("Abrir inventario", TipoPanel.Inventario,
-            PoliticaDeAcceso.PuedeConsultarInventario(_sesion.Rol)));
-        panelListaAlertas.Controls.Add(CrearAccesoRapido("Abrir reportes", TipoPanel.Reportes,
-            PoliticaDeAcceso.PuedeVerReportes(_sesion.Rol)));
-        panelListaAlertas.Controls.Add(CrearAccesoRapido("Nuevo carrito", TipoPanel.Carrito,
-            PoliticaDeAcceso.PuedeAbrirCarrito(_sesion.Rol)));
-        panelListaAlertas.Controls.Add(CrearAccesoRapido("Gestionar despacho", TipoPanel.Despacho,
-            PoliticaDeAcceso.PuedeDespachar(_sesion.Rol)));
+        ConfigurarAlertasAccionesRapidas(panelListaAlertas);
 
         tarjetaAlertas.Controls.Add(panelListaAlertas);
         tarjetaAlertas.Controls.Add(lblTituloAlertas);
@@ -164,7 +149,70 @@ public sealed class PanelGeneral : UserControl
         Controls.Add(encabezado);
     }
 
-    private Button CrearAccesoRapido(string texto, TipoPanel destino, bool habilitado)
+    private void ConfigurarResumenPorRol()
+    {
+        _panelMetricas.Controls.Clear();
+        _tarjetasMetricas.Clear();
+
+        AgregarTarjetaMetricas("Pedidos activos", _lblValActivos, 180);
+
+        if (_sesion.Rol is RolUsuario.Admin or RolUsuario.Bodega)
+            AgregarTarjetaMetricas("Por despachar", _lblValDespachar, 180);
+
+        if (_sesion.Rol is RolUsuario.Admin or RolUsuario.Bodega or RolUsuario.Consulta)
+            AgregarTarjetaMetricas("Stock bajo", _lblValStockBajo, 180);
+
+        if (_sesion.Rol is RolUsuario.Admin or RolUsuario.Ventas or RolUsuario.Consulta)
+            AgregarTarjetaMetricas("Ventas (USD)", _lblValVentas, 200);
+    }
+
+    private void AgregarTarjetaMetricas(string titulo, Label valor, int ancho)
+    {
+        var tarjeta = CrearTarjeta(titulo, valor, ancho);
+        _tarjetasMetricas.Add(tarjeta);
+        _panelMetricas.Controls.Add(tarjeta);
+    }
+
+    private void ConfigurarAlertasAccionesRapidas(FlowLayoutPanel contenedor)
+    {
+        if (_sesion.Rol is RolUsuario.Admin or RolUsuario.Bodega or RolUsuario.Consulta)
+            contenedor.Controls.Add(_lblAlertaStock);
+
+        if (_sesion.Rol == RolUsuario.Admin)
+            contenedor.Controls.Add(_lblAlertaOutbox);
+
+        if (_sesion.Rol is RolUsuario.Admin or RolUsuario.Ventas)
+            contenedor.Controls.Add(_lblAlertaDevoluciones);
+
+        AgregarAccesoSiPermitido(contenedor, "Abrir catálogo", TipoPanel.Catalogo,
+            PoliticaDeAcceso.PuedeConsultarCatalogo(_sesion.Rol));
+        AgregarAccesoSiPermitido(contenedor, "Abrir clientes", TipoPanel.Clientes,
+            PoliticaDeAcceso.PuedeGestionarClientes(_sesion.Rol));
+        AgregarAccesoSiPermitido(contenedor, "Abrir pedidos", TipoPanel.Pedidos,
+            PoliticaDeAcceso.PuedeVerPedidos(_sesion.Rol));
+        AgregarAccesoSiPermitido(contenedor, "Abrir inventario", TipoPanel.Inventario,
+            PoliticaDeAcceso.PuedeConsultarInventario(_sesion.Rol));
+        AgregarAccesoSiPermitido(contenedor, "Abrir reportes", TipoPanel.Reportes,
+            PoliticaDeAcceso.PuedeVerReportes(_sesion.Rol));
+        AgregarAccesoSiPermitido(contenedor, "Nuevo carrito", TipoPanel.Carrito,
+            PoliticaDeAcceso.PuedeAbrirCarrito(_sesion.Rol));
+        AgregarAccesoSiPermitido(contenedor, "Cobrar pedido", TipoPanel.Cobro,
+            PoliticaDeAcceso.PuedeCobrar(_sesion.Rol));
+        AgregarAccesoSiPermitido(contenedor, "Gestionar despacho", TipoPanel.Despacho,
+            PoliticaDeAcceso.PuedeDespachar(_sesion.Rol));
+        AgregarAccesoSiPermitido(contenedor, "Gestionar devoluciones", TipoPanel.Devoluciones,
+            PoliticaDeAcceso.PuedeProcesarDevolucion(_sesion.Rol));
+        AgregarAccesoSiPermitido(contenedor, "Abrir auditoría", TipoPanel.Auditoria,
+            PoliticaDeAcceso.PuedeAuditar(_sesion.Rol));
+    }
+
+    private void AgregarAccesoSiPermitido(FlowLayoutPanel contenedor, string texto, TipoPanel destino, bool permitido)
+    {
+        if (!permitido) return;
+        contenedor.Controls.Add(CrearAccesoRapido(texto, destino));
+    }
+
+    private Button CrearAccesoRapido(string texto, TipoPanel destino)
     {
         var boton = new Button
         {
@@ -172,7 +220,7 @@ public sealed class PanelGeneral : UserControl
             Width = 230,
             Height = 34,
             Margin = new Padding(0, 4, 0, 4),
-            Enabled = habilitado
+            Enabled = true
         };
         EstiloUi.AplicarBotonSecundario(boton);
         boton.Click += (_, _) => _mediador.MostrarPanel(destino);
