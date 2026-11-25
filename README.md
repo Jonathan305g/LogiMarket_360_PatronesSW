@@ -111,7 +111,7 @@ Ejecutar la suite completa de pruebas unitarias, de integración y de patrones d
 dotnet test LogiMarket360.slnx
 ```
 
-- **Total de pruebas:** 217 pruebas automatizadas (100% aprobadas, 0 fallidas, 0 omitidas).
+- **Total de pruebas:** 221 pruebas automatizadas (100% aprobadas, 0 fallidas, 0 omitidas).
 - **Aislamiento:** Las pruebas de infraestructura y persistencia generan bases SQLite temporales en memoria o en la carpeta temporal, garantizando que la base de datos local del usuario no se altere.
 - **Cobertura:** Cubre los 23 patrones GoF, reglas de negocio, cálculo de descuentos e impuestos, Outbox transaccional, invariantes de dominio y concurrencia.
 
